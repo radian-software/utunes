@@ -1,0 +1,23 @@
+[[package]]
+category = "main"
+description = "read and write audio tags for many formats"
+name = "mutagen"
+optional = false
+python-versions = "*"
+version = "1.42.0"
+
+[[package]]
+category = "main"
+description = "VLC bindings for python."
+name = "python-vlc"
+optional = false
+python-versions = "*"
+version = "3.0.6109"
+
+[metadata]
+content-hash = "a3520a94da4a9ab6a5a21f6d0272f71db03c5f62dc81889978b750e534ec5240"
+python-versions = "^3.7"
+
+[metadata.hashes]
+mutagen = ["bb61e2456f59a9a4a259fbc08def6d01ba45a42da8eeaa97d00633b0ec5de71c"]
+python-vlc = ["0c2c6b4e4b0cad162a694e7740a8571f12fd7eebacd5b55c93e457f917b89cd7", "fd24075cde4febb9611d5be412ba8d3998a8c59d24dd9d1d2b76376dc831bc7b"]
