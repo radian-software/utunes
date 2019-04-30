@@ -19,6 +19,19 @@ iTunes.
   functions to read and write text data between Emacs buffers and
   files on disk used by the backend.
 
+### Installation
+
+The backend may be installed as a standard Python package from this
+GitHub repository. It is recommended to use [pipx]:
+
+    $ pipx install utunes --spec git+https://github.com/raxod502/utunes.git
+
+The frontend may be installed as a standard Emacs Lisp package from
+this GitHub repository. It is recommended to use
+[`straight.el`][straight.el]:
+
+    (straight-use-package '(utunes :host github :repo "raxod502/utunes"))
+
 ## Music library format
 
 All metadata for your music library is stored in a single JSON file
