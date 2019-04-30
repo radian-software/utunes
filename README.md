@@ -33,6 +33,11 @@ this GitHub repository. It is recommended to use
 
     (straight-use-package '(utunes :host github :repo "raxod502/utunes"))
 
+To make sure the packages remain in sync, I recommend installing the
+Emacs package first and then running:
+
+    $ pipx install utunes -e --spec ~/.emacs.d/straight/repos/utunes
+
 ## Music library format
 
 All metadata for your music library is stored in a single JSON file
