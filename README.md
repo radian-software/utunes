@@ -14,10 +14,11 @@ iTunes.
 * The backend. This is a command-line utility written in Python, which
   provides very minimal search and editing features for your library
   in the style of Git's `git-rebase-todo` file. It does not run as a
-  background daemon or server.
+  background daemon or server, although it does start a daemon
+  specifically to handle playing songs.
 * The frontend. This is an Emacs package which provides some simple
-  functions to read and write text data between Emacs buffers and
-  files on disk used by the backend.
+  functions to read and write text data between Emacs buffers and the
+  file descriptors of the backend.
 
 ### Installation
 
@@ -45,9 +46,9 @@ The album and song names are cleaned up to work nicely as file and
 directory names, so you should not expect to reconstruct this data
 from the filesystem.
 
-Each album folder may also contain a file called `artwork.{ext}`,
-which (if present) provides the album artwork for the album. (Each
-album may only have one piece of album artwork.)
+There is an additional directory in the same directory as
+`utunes.json`, called `artwork`. This directory contains album artwork
+with arbitrary filenames.
 
 The structure of `utunes.json` is as follows. The top level is a map
 with keys:
@@ -63,12 +64,14 @@ song within `utunes.json`. It is thus possible to have a maximum of
 4.3 billion songs in a single µTunes library.
 
 Song objects are maps with user-defined keys and values (strings). All
-keys starting with a `.` are reserved for use by µTunes, and treated
+keys starting with an `_` are reserved for use by µTunes, and treated
 specially. These are:
 
 * `_id`: *song ID*.
 * `_filename`: filesystem path of corresponding media file, relative
   to the `media` directory.
+* `_artwork`: filesystem path of corresponding album artwork file,
+  relative to the `artwork` directory.
 * `_imported`: set to `true` when songs are imported, and can be used
   to identify them for post-import processing.
 * `_album`: album name, used in filesystem paths.
@@ -77,7 +80,7 @@ specially. These are:
 * `_disc`: disc number, used in filesystem paths.
 
 In the `list` and `update` commands of the backend command-line
-interface, song objects appear to have additional `.`-prefixed fields
+interface, song objects appear to have additional `_`-prefixed fields
 which do not appear in `utunes.json`. These *virtual fields* are as
 follows:
 
@@ -119,7 +122,7 @@ warning printed to stderr.
 List all songs in your library in an unspecified order. For each song,
 the provided `FORMAT` string (which may or may not end with a newline)
 is passed to Python's `str.format` with the attributes of the song
-object available as substitutions (e.g. `{artist}` or `{.id}`) and then
+object available as substitutions (e.g. `{artist}` or `{_id}`) and then
 printed to stdout.
 
 You can filter the output by passing `-f`. In this case, `FIELD` is
@@ -175,11 +178,12 @@ information is written to the file `playback.json` in the same
 directory as `utunes.json`. This file contains a JSON map with the
 following keys:
 
-* `port`: Port on which the server is listening.
-* `playlist`: Name of the playlist which is currently being played.
-* `index`: Index of the song which is currently being played. This is
-  updated whenever a new song starts to play, or whenever you seek to
-  the beginning of a new song.
+* `port`: Port on which the server is listening, integer.
+* `playlist`: Name of the playlist which is currently being played,
+  string.
+* `index`: Index of the song which is currently being played, integer.
+  This is updated whenever a new song starts to play, or whenever you
+  seek to the beginning of a new song.
 
 Before playing or pausing as appropriate, if the `-b` or `-e` flag is
 provided, then µTunes seeks to the beginning of the current or next
@@ -215,11 +219,11 @@ Overrides `default-directory` as the working directory for `utunes`.
 
 ### Functions
 
-    (utunes-import-files RECURSIVE FILES)
+    (utunes-import RECURSIVE FILES)
 
-Import the given media files using `utunes import`. `RECURSIVE` is a
-boolean and `FILES` is a list of filenames relative to
-`default-directory` (not `utunes-library-dir`).
+Import the given media files or directories using `utunes import`.
+`RECURSIVE` is a boolean and `FILES` is a list of filenames relative
+to `default-directory` (not `utunes-library-dir`).
 
     (utunes-list FORMAT &key FILTERS SORTS ILLEGAL-CHARS)
 
@@ -241,6 +245,47 @@ Start or stop playback, using `utunes (play | pause)`. `CMD` is a
 symbol (`play` or `pause`). `SEEK` is either a symbol (`beginning` or
 `end`), or a cons whose car is a playlist name (string) and whose cdr
 is a playlist index (integer, starting from 1).
+
+### Interactive commands
+
+    M-x utunes-import-dir
+
+Select a directory using `read-directory-name` and import media files
+from it recursively.
+
+    M-x utunes-show-imported
+
+List imported songs into a dedicated buffer.
+
+    M-x utunes-show-album
+
+Select an album using `completing-read`, and list songs into a
+dedicated buffer.
+
+    M-x utunes-show-playlist
+
+Select a new or existing playlist using `completing-read` and list
+songs into a dedicated buffer.
+
+    M-x utunes-save
+
+Select a currently live dedicated buffer using `completing-read` (if
+more than one), run the corresponding update operation, and kill the
+buffer.
+
+    M-x utunes-toggle-playback
+
+Play or pause.
+
+    [C-u] M-x utunes-seek-(beginning|end)
+
+Seek to beginning or end of current song, and pause. If a prefix
+argument is provided, play instead of pausing.
+
+    [C-u] M-x utunes-seek
+
+Select a playlist and index using `completing-read`, then seek there
+and pause. If a prefix argument is provided, play instead of pausing.
 
 [pipx]: https://github.com/pipxproject/pipx
 [straight.el]: https://github.com/raxod502/straight.el
