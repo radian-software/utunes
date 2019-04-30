@@ -186,3 +186,61 @@ provided, then µTunes seeks to the beginning of the current or next
 song in the playlist, respectively. Alternatively, if `NAME` and
 `INDEX` are provided, then before playing or pausing, µTunes seeks to
 the beginning of the song at the given index in the given playlist.
+
+## Frontend Emacs interface
+
+The focus of the frontend is on providing a set of composable
+primitives which can be used to rapidly develop any desired UI.
+
+### General conventions
+
+`utunes` commands are run asynchronously. Trying to execute another
+command while one is already running will result in a user error; an
+interactive command is provided in order to kill a running command,
+although doing this is not generally recommended since `utunes` does
+not guarantee atomicity.
+
+If a `utunes` command is expected to read from stdin or write to
+stdout, then its file descriptors will be redirected automatically to
+an appropriate Emacs buffer, according to context. If a command fails,
+or if it emits warnings, then its output to stderr is displayed in a
+shared error buffer and the user is notified via the echo area. The
+user is also notified if the command succeeds.
+
+### Variables
+
+    utunes-library-dir
+
+Overrides `default-directory` as the working directory for `utunes`.
+
+### Functions
+
+    (utunes-import-files RECURSIVE FILES)
+
+Import the given media files using `utunes import`. `RECURSIVE` is a
+boolean and `FILES` is a list of filenames relative to
+`default-directory` (not `utunes-library-dir`).
+
+    (utunes-list FORMAT &key FILTERS SORTS ILLEGAL-CHARS)
+
+List songs to the current buffer, at point, using `utunes list`.
+`FORMAT` is a string. `FILTERS` is an alist mapping field names
+(strings) to Python-style regexes (strings). `SORTS` is an alist
+mapping field names (strings) to symbols (`sort`, `reverse`, or
+`shuffle`). `ILLEGAL-CHARS` is a string.
+
+    (utunes-update REGEX &optional PLAYLIST)
+
+Update song metadata, and optionally overwrite a playlist, reading
+data from the current buffer, using `utunes update`. `REGEX` is a
+Python-style regex (string), and `PLAYLIST` is a string.
+
+    (utunes-playback CMD &optional SEEK)
+
+Start or stop playback, using `utunes (play | pause)`. `CMD` is a
+symbol (`play` or `pause`). `SEEK` is either a symbol (`beginning` or
+`end`), or a cons whose car is a playlist name (string) and whose cdr
+is a playlist index (integer, starting from 1).
+
+[pipx]: https://github.com/pipxproject/pipx
+[straight.el]: https://github.com/raxod502/straight.el
