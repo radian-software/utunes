@@ -78,7 +78,6 @@ def subcmd_init():
     lib.commit_changes()
     print("Initialized µTunes library in {}"
           .format(library_root), file=sys.stderr)
-    sys.exit(0)
 
 
 def subcmd_import(sources, recursive):
