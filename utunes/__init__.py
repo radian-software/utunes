@@ -1,7 +1,10 @@
 import argparse
-import atomicwrites
 import json
+import os
+import pathlib
 import sys
+
+import atomicwrites
 
 
 class UnsetClass:
@@ -25,13 +28,21 @@ class InternalError(Exception):
     pass
 
 
+def is_path_occupied(p):
+    return p.exists() or p.is_symlink()
+
+
+class Paths:
+    json_basename = pathlib.Path("utunes.json")
+
+
 class Library:
 
     def __init__(self, library_root):
         self.library_root = library_root
         json_fname = self.get_json_filename()
         self.data = UNSET
-        if json_fname.exists() or json_fname.is_symlink():
+        if is_path_occupied(json_fname):
             try:
                 with open(json_fname) as f:
                     self.data = json.load(f)
@@ -40,15 +51,34 @@ class Library:
                     "error reading library file: {}".format(e)
                 ) from None
         # TODO: validate data format
+        if self.data is UNSET:
+            self.data = {
+                "version": 1,
+                "songs": {},
+                "playlists": {},
+            }
 
     def get_json_filename(self):
-        return self.library_root / "utunes.json"
+        return self.library_root / Paths.json_basename
 
     def commit_changes(self):
         json_fname = self.get_json_filename()
         with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
             json.dump(self.data, f, indent=2)
             f.write("\n")
+
+
+def subcmd_init():
+    json_fname = Paths.json_basename
+    if is_path_occupied(json_fname):
+        raise UserError("library already initialized: {}"
+                        .format(repr(json_fname)))
+    library_root = json_fname.resolve().parent
+    lib = Library(library_root)
+    lib.commit_changes()
+    print("Initialized µTunes library in {}"
+          .format(library_root), file=sys.stderr)
+    sys.exit(0)
 
 
 def subcmd_import(sources, recursive):
@@ -76,8 +106,16 @@ def main():
     parser.add_argument(
         "--version", action="version", version="µTunes pre-release version"
     )
+    parser.add_argument(
+        "-C", "--cd", dest="cd_dir", default=UNSET, metavar="DIR",
+        help="change to given directory before running",
+    )
 
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
+
+    subparsers.add_parser(
+        "init", help="initialize a new library in the current directory"
+    )
 
     parser_import = subparsers.add_parser(
         "import", help="add media files to library"
@@ -129,8 +167,18 @@ def main():
                                 help="seek to one-based index in given playlist")
 
     args = parser.parse_args()
+
     try:
-        if args.subcommand == "import":
+        if args.cd_dir is not UNSET:
+            try:
+                os.chdir(args.cd_dir)
+            except OSError as e:
+                raise UserError("couldn't change directory to {}: {}"
+                                .format(repr(args.cd_dir), e)) from None
+
+        if args.subcommand == "init":
+            subcmd_init()
+        elif args.subcommand == "import":
             subcmd_import(sources=args.sources, recursive=args.recursive)
         elif args.subcommand == "list":
             filters = []
