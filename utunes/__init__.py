@@ -78,20 +78,22 @@ class Library:
             f.write("\n")
 
 
-def find_library_root():
+def find_library_root(silent=False):
     cwd = pathlib.Path(".").resolve()
     for directory in (cwd, *cwd.parents):
         if is_path_occupied(directory / Paths.json_basename):
             return directory
-    raise UserError("could not find {}".format(Paths.json_basename))
+    if silent:
+        raise UserError("could not find {}".format(Paths.json_basename))
+    return UNSET
 
 
 def subcmd_init():
-    json_fname = Paths.json_basename
-    if is_path_occupied(json_fname):
+    library_root = find_library_root(silent=False)
+    if library_root is not UNSET:
         raise UserError("library already initialized: {}"
-                        .format(repr(json_fname)))
-    library_root = json_fname.resolve().parent
+                        .format(library_root))
+    library_root = Paths.json_basename.resolve().parent
     lib = Library(library_root)
     lib.commit_changes()
     print("Initialized µTunes library in {}"
