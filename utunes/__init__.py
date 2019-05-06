@@ -135,6 +135,8 @@ def subcmd_import(sources, recursive):
     for f in files:
         print("Importing: {}".format(f), file=sys.stderr)
         lib.import_from_file(f)
+    print("Writing changes to disk", file=sys.stderr)
+    lib.commit_changes()
     print("Imported {} files", file=sys.stderr)
 
 
