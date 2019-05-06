@@ -1,4 +1,5 @@
 import argparse
+import glob
 import json
 import os
 import pathlib
@@ -32,6 +33,12 @@ def is_path_occupied(p):
     return p.exists() or p.is_symlink()
 
 
+def path_walk(p):
+    pattern = pathlib.Path(glob.escape(p)) / "**"
+    paths = glob.iglob(pattern, recursive=True)
+    return (pathlib.Path(p) for p in paths)
+
+
 class Paths:
     json_basename = pathlib.Path("utunes.json")
 
@@ -61,11 +68,22 @@ class Library:
     def get_json_filename(self):
         return self.library_root / Paths.json_basename
 
+    def import_from_file(self, fname):
+        raise InternalError("not yet implemented")
+
     def commit_changes(self):
         json_fname = self.get_json_filename()
         with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
             json.dump(self.data, f, indent=2)
             f.write("\n")
+
+
+def find_library_root():
+    cwd = pathlib.Path(".").resolve()
+    for directory in (cwd, *cwd.parents):
+        if is_path_occupied(directory / Paths.json_basename):
+            return directory
+    raise UserError("could not find {}".format(Paths.json_basename))
 
 
 def subcmd_init():
@@ -80,8 +98,42 @@ def subcmd_init():
           .format(library_root), file=sys.stderr)
 
 
+EXTENSIONS = (".mp3")
+
+
 def subcmd_import(sources, recursive):
-    raise InternalError("not yet implemented")
+    lib = Library(find_library_root())
+    files = []
+    for source in sources:
+        if source.is_file():
+            if source.suffix not in EXTENSIONS:
+                raise UserError("file has unsupported suffix: {}"
+                                .format(source))
+            files.append(source)
+        elif source.is_dir():
+            if not recursive:
+                raise UserError(
+                    "cannot import directory without --recursive: {}"
+                    .format(source)
+                )
+            filtered_paths = []
+            for path in path_walk(source):
+                if not path.is_file():
+                    continue
+                if path.suffix not in EXTENSIONS:
+                    continue
+                filtered_paths.append(path)
+            if not filtered_paths:
+                raise UserError("no media files in directory: {}"
+                                .format(source))
+            files.extend(filtered_paths)
+        else:
+            raise UserError("not a file or directory: {}"
+                            .format(source))
+    for f in files:
+        print("Importing: {}".format(f), file=sys.stderr)
+        lib.import_from_file(f)
+    print("Imported {} files", file=sys.stderr)
 
 
 def subcmd_list(filters, sorts, illegal_chars, format_str):
@@ -178,7 +230,8 @@ def main():
         if args.subcommand == "init":
             subcmd_init()
         elif args.subcommand == "import":
-            subcmd_import(sources=args.sources, recursive=args.recursive)
+            sources = [pathlib.Path(source) for source in args.sources]
+            subcmd_import(sources=sources, recursive=args.recursive)
         elif args.subcommand == "list":
             filters = []
             for filter_str in args.filters:
