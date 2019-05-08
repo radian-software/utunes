@@ -119,7 +119,7 @@ in seconds.
 The µTunes command-line interface exposes several subcommands, which
 are described in the following sub-sections.
 
-µTunes recognizes one environment variable, `ETUNES_LIBRARY`. If it is
+µTunes recognizes one environment variable, `UTUNES_LIBRARY`. If it is
 set, then µTunes will use that directory as its music library.
 Otherwise, µTunes will look at the working directory and its parents,
 and it will identify the music library directory by the presence of
@@ -212,7 +212,7 @@ server can be done by passing an empty map as the input JSON.
 
 The response may have a null value for the `playlist`, `index`,
 `seek`, and/or `seek_end` keys if these parameters have not yet been
-set, or data is unavailable.
+set, or if data is unavailable.
 
 ## Emacs frontend
 
