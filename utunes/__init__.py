@@ -3,6 +3,8 @@ import glob
 import json
 import os
 import pathlib
+import re
+import string
 import sys
 
 import atomicwrites
@@ -45,8 +47,20 @@ class Paths:
 
 class Library:
 
-    def __init__(self, library_root):
-        self.library_root = library_root
+    @staticmethod
+    def find_library_root():
+        env_root = os.environ.get("UTUNES_LIBRARY")
+        if env_root:
+            return pathlib.Path(env_root).resolve()
+        cwd = pathlib.Path(".").resolve()
+        for directory in (cwd, *cwd.parents):
+            if is_path_occupied(directory / Paths.json_basename):
+                return directory
+        raise UserError("could not find {}, and UTUNES_LIBRARY not set"
+                        .format(Paths.json_basename))
+
+    def __init__(self):
+        self.library_root = Library.find_library_root()
         json_fname = self.get_json_filename()
         self.data = UNSET
         if is_path_occupied(json_fname):
@@ -68,9 +82,6 @@ class Library:
     def get_json_filename(self):
         return self.library_root / Paths.json_basename
 
-    def import_from_file(self, fname):
-        raise InternalError("not yet implemented")
-
     def commit_changes(self):
         json_fname = self.get_json_filename()
         with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
@@ -78,77 +89,36 @@ class Library:
             f.write("\n")
 
 
-def find_library_root(silent=False):
-    cwd = pathlib.Path(".").resolve()
-    for directory in (cwd, *cwd.parents):
-        if is_path_occupied(directory / Paths.json_basename):
-            return directory
-    if silent:
-        raise UserError("could not find {}".format(Paths.json_basename))
-    return UNSET
-
-
-def subcmd_init():
-    library_root = find_library_root(silent=False)
-    if library_root is not UNSET:
-        raise UserError("library already initialized: {}"
-                        .format(library_root))
-    library_root = Paths.json_basename.resolve().parent
-    lib = Library(library_root)
-    lib.commit_changes()
-    print("Initialized µTunes library in {}"
-          .format(library_root), file=sys.stderr)
-
-
-EXTENSIONS = (".mp3")
-
-
-def subcmd_import(sources, recursive):
-    lib = Library(find_library_root())
-    files = []
-    for source in sources:
-        if source.is_file():
-            if source.suffix not in EXTENSIONS:
-                raise UserError("file has unsupported suffix: {}"
-                                .format(source))
-            files.append(source)
-        elif source.is_dir():
-            if not recursive:
-                raise UserError(
-                    "cannot import directory without --recursive: {}"
-                    .format(source)
-                )
-            filtered_paths = []
-            for path in path_walk(source):
-                if not path.is_file():
-                    continue
-                if path.suffix not in EXTENSIONS:
-                    continue
-                filtered_paths.append(path)
-            if not filtered_paths:
-                raise UserError("no media files in directory: {}"
-                                .format(source))
-            files.extend(filtered_paths)
-        else:
-            raise UserError("not a file or directory: {}"
-                            .format(source))
-    for f in files:
-        print("Importing: {}".format(f), file=sys.stderr)
-        lib.import_from_file(f)
-    print("Writing changes to disk", file=sys.stderr)
-    lib.commit_changes()
-    print("Imported {} files", file=sys.stderr)
-
-
-def subcmd_list(filters, sorts, illegal_chars, format_str):
+def extract_fields(format_str):
     raise InternalError("not yet implemented")
 
 
-def subcmd_update(regex, playlist):
+def subcmd_read(filters, sorts, illegal_chars, format_str):
+    lib = Library()
+    output = []
+    fields = extract_fields(format_str)
+    for song in lib.read(filters=filters, sorts=sorts):
+        for field in fields:
+            if field not in song:
+                song[field] = ""
+            else:
+                for char in illegal_chars:
+                    if char in song[field]:
+                        raise UserError(
+                            "song contains {} in field {}: {}"
+                            .format(
+                                repr(char), repr(field), repr(song["filename"])
+                            )
+                        )
+        output.append(format_str.format(**song))
+    print("".join(output))
+
+
+def subcmd_write(regex, playlist):
     raise InternalError("not yet implemented")
 
 
-def subcmd_playback(cmd, seek):
+def subcmd_playback():
     raise InternalError("not yet implemented")
 
 
@@ -168,38 +138,26 @@ def main():
 
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
-    subparsers.add_parser(
-        "init", help="initialize a new library in the current directory"
-    )
-
-    parser_import = subparsers.add_parser(
-        "import", help="add media files to library"
-    )
-    parser_import.add_argument("-r", "--recursive", action="store_true",
-                               help="allow importing directories recursively")
-    parser_import.add_argument("sources", nargs="+", metavar="SOURCE",
-                               help="media file or directory")
-
     parser_list = subparsers.add_parser(
-        "list", help="list media files from library to stdout"
-    )
-    parser_list.add_argument("-f", "--filter", dest="filters",
-                             action="append", metavar="FIELD=REGEX",
-                             help="filter songs by the given field")
-    parser_list.add_argument("-s", "--sort", dest="sorts",
-                             action="append", metavar="[s:|r:|x:]FIELD",
-                             help="sort songs by the given field ('r:' for reverse, 'x:' for shuffle)")
-    parser_list.add_argument(
-        "-i", "--illegal-chars", default="", metavar="CHARS",
-        help="report an error if song fields contain the given characters"
+        "read", help="list media files from library to stdout"
     )
     parser_list.add_argument(
         "format", metavar="FORMAT",
         help="Python str.format string for listing output"
     )
+    parser_list.add_argument("-f", "--filter", dest="filters",
+                             action="append", metavar="FIELD=REGEX",
+                             help="filter songs by the given field")
+    parser_list.add_argument("-s", "--sort", dest="sorts",
+                             action="append", metavar="Q:FIELD",
+                             help="sort songs by the given field (Q is one of srxSR)")
+    parser_list.add_argument(
+        "-i", "--illegal-chars", default="", metavar="CHARS",
+        help="report an error if song fields contain the given characters"
+    )
 
     parser_update = subparsers.add_parser(
-        "update", help="update song metadata and playlists from stdin"
+        "write", help="update song metadata and playlists from stdin"
     )
     parser_update.add_argument(
         "regex", metavar="REGEX", help="regex for parsing input"
@@ -209,17 +167,9 @@ def main():
         metavar="PLAYLIST", help="name of playlist to update"
     )
 
-    for cmd in ("play", "pause"):
-        parser_playback = subparsers.add_parser(
-            cmd, help="{} music, optionally seeking first".format(cmd)
-        )
-        group_seek = parser_playback.add_mutually_exclusive_group()
-        group_seek.add_argument("-b", "--beginning", action="store_true",
-                                help="seek to beginning of current song")
-        group_seek.add_argument("-e", "--end", action="store_true",
-                                help="seek to beginning of next song")
-        group_seek.add_argument("-p", "--playlist", metavar="PLAYLIST:INDEX",
-                                help="seek to one-based index in given playlist")
+    subparsers.add_parser(
+        "playback", help="read and write music playback server state"
+    )
 
     args = parser.parse_args()
 
@@ -231,12 +181,7 @@ def main():
                 raise UserError("couldn't change directory to {}: {}"
                                 .format(repr(args.cd_dir), e)) from None
 
-        if args.subcommand == "init":
-            subcmd_init()
-        elif args.subcommand == "import":
-            sources = [pathlib.Path(source) for source in args.sources]
-            subcmd_import(sources=sources, recursive=args.recursive)
-        elif args.subcommand == "list":
+        if args.subcommand == "read":
             filters = []
             for filter_str in args.filters:
                 try:
@@ -246,41 +191,20 @@ def main():
                 filters.append((field, regex))
             sorts = []
             for sort_str in args.sorts:
-                if len(sort_str) >= 2 and sort_str[1] == ":":
-                    qualifier = sort_str[0]
-                    field = sort_str[2:]
-                else:
-                    qualifier = "s"
-                    field = sort_str
-                if not field or qualifier not in "srx":
+                match = re.fullmatch(r"([srxSR]):(.*)", sort_str)
+                if not match:
                     parser_list.error("malformed sort string: {}".format(repr(sort_str)))
+                qualifier, field = match.groups()
                 sorts.append((qualifier, field))
-            subcmd_list(
+            subcmd_read(
                 filters=filters, sorts=sorts,
                 illegal_chars=args.illegal_chars,
                 format_str=args.format,
             )
-        elif args.subcommand == "update":
+        elif args.subcommand == "write":
             subcmd_update(regex=args.regex, playlist=args.playlist)
-        elif args.subcommand in ("play", "pause"):
-            seek = UNSET
-            if args.beginning:
-                seek = "beginning"
-            elif args.end:
-                seek = "end"
-            elif args.playlist:
-                try:
-                    playlist, index = args.playlist.split(":")
-                    index = int(index)
-                    if index <= 0:
-                        raise ValueError
-                except ValueError:
-                    parser.error("malformed playlist string: {}"
-                                 .format(repr(args.playlist)))
-                seek = (playlist, index)
-            else:
-                raise InternalError
-            subcmd_playback(cmd=args.subcommand, seek=seek)
+        elif args.subcommand == "playback":
+            subcmd_playback()
         else:
             raise InternalError
     except UserError as e:
