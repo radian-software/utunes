@@ -33,7 +33,7 @@ class InternalError(Exception):
     pass
 
 
-def get_nonce(k=4, s=UNSET, l=UNSET):
+def get_nonce(k=4, s=UNSET):
     """
     Return a random string of length k. If s is provided, the returned
     string is not `in` s.
@@ -83,14 +83,14 @@ class Library:
 
     @staticmethod
     def get_canonical_filename(song):
-        album = prettify_path(song.get("album", "untitled"))
+        album = Library.prettify_path(song.get("album", "untitled"))
         disc = song.get("disc", "")
         if disc:
-            disc = prettify_path("{:02s}-".format(disc))
+            disc = Library.prettify_path(disc.zfill(2) + "-")
         track = song.get("track", "")
         if track:
-            track = prettify_path("{:03s}-".format(track))
-        song_id = prettify_path(song["id"])
+            track = Library.prettify_path(track.zfill(3) + "-")
+        song_id = Library.prettify_path(song["id"])
         title = song.get("title", "untitled")
         suffix = pathlib.Path(song["filename"]).suffix
         filename = disc + track + song_id + " " + title + suffix
@@ -132,8 +132,6 @@ class Library:
             }
 
     def read(self, filters, sorts):
-        if self.updated_song_ids:
-            raise InternalError("read between write and commit")
         if any(field == "playlist" for field, regex in filters):
             raise InternalError("not yet implemented")
         check_song = Library.filters_to_function(filters)
@@ -151,14 +149,16 @@ class Library:
                 keys = list({songs[field] for song in songs})
                 random.shuffle(keys)
                 values = {idx: key for idx, key in keys.enumerate()}
+
                 def key(val):
                     return values[val]
             reverse = mode in "rR"
             songs.sort(key=key, reverse=reverse)
         return songs
 
-    def write(partial_songs, playlist):
+    def write(self, partial_songs, playlist):
         songs = self.data["songs"]
+        updated_song_ids = set()
         for partial_song in partial_songs:
             song_id = partial_song.get("id")
             if song_id:
@@ -175,18 +175,18 @@ class Library:
                         song.pop(key)
             else:
                 song_id = get_nonce(k=8, s=songs)
-                song = {"id": song_id, **partal_song}
+                song = {"id": song_id, **partial_song}
                 songs[song_id] = song
-            self.updated_song_ids.add(song_id)
+            updated_song_ids.add(song_id)
         renames = {}
-        for song_id in self.updated_songs:
+        for song_id in updated_song_ids:
             song = self.data["songs"][song_id]
             old_filename = pathlib.Path(song["filename"])
             new_filename = Library.get_canonical_filename(song)
             if new_filename == old_filename:
                 continue
-            renames[Library.get_music_dirname(old_filename)] = (
-                Library.get_music_dirname(new_filename)
+            renames[self.get_music_dirname() / old_filename] = (
+                self.get_music_dirname() / new_filename
             )
         for old_filename, new_filename in renames.items():
             if not old_filename.is_file():
@@ -231,18 +231,14 @@ def subcmd_read(filters, sorts, illegal_chars, format_str):
 
 def subcmd_write(format_str, playlist):
     lib = Library()
-    nonce = get_nonce(s=format_str)
-    format_str_with_nonce = format_str + "{" + nonce + "}"
     input_str = sys.stdin.read()
+    results = parse.findall(format_str, input_str)
     partial_songs = []
-    while input_str:
-        result = parse.parse(format_str_with_nonce, input_str)
-        if res.fixed:
+    for result in results:
+        if result.fixed:
             raise UserError("format string uses anonymous fields: {}"
                             .format(repr(format_str)))
-        partial_song = result.named
-        partial_song.pop(nonce)
-        partial_songs.append(partial_song)
+        partial_songs.append(result.named)
     lib.write(partial_songs=partial_songs, playlist=playlist)
 
 
