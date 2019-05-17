@@ -168,21 +168,21 @@ and the command terminates.
     $ utunes write FORMAT [PLAYLIST]
 
 This subcommand reads from stdin. The input must be a sequence of
-strings which [match][parse] the provided `str.format` string, with no
-delimiter. (You will probably want to include a trailing newline in
-the format string.) The format string must include named format
-specifiers whose names correspond to keys in a song object (e.g.
-`{album}`). If there is a format specifier for `id` (e.g. `{id}`),
-then the other fields will be updated in the library database as
-directed, if needed, and song files will be renamed accordingly.
-Otherwise, there must be a format specifier for `filename`, and the
-song will be imported into the library database, with the file renamed
-appropriately from the given filename. If the value for a capture
-group is empty, then the key is removed from the song. This is not
-allowed for the `id` field. If the special field `delete` is
-non-empty, then songs are removed from the library database and their
-files are moved to the `trash` subdirectory of the library directory
-(next to `music`, with the same subdirectory structure).
+strings which match the provided Python-style regular expression, with
+no delimiter. (You will probably want to include a trailing newline in
+the regex.) The regex must include named capture groups whose names
+correspond to keys in a song object (e.g. `(?P<album>...)`). If there
+is a format specifier for `id` (e.g. `(?P<id>)`), then the other
+fields will be updated in the library database as directed, if needed,
+and song files will be renamed accordingly. Otherwise, there must be a
+format specifier for `filename`, and the song will be imported into
+the library database, with the file renamed appropriately from the
+given filename. If the value for a capture group is empty, then the
+key is removed from the song. This is not allowed for the `id` field.
+If the special field `delete` is non-empty, then songs are removed
+from the library database and their files are moved to the `trash`
+subdirectory of the library directory (next to `music`, with the same
+subdirectory structure).
 
 If you provide a playlist name, then the given playlist is overwritten
 with the provided songs in the given order.
@@ -251,7 +251,6 @@ Emacs package first and then running:
 
 (This last command currently suffers from a [bug in Pip][pipx#151].)
 
-[parse]: https://pypi.org/project/parse/
 [pipx]: https://github.com/pipxproject/pipx
 [pipx#151]: https://github.com/pipxproject/pipx/issues/151
 [straight.el]: https://github.com/raxod502/straight.el

@@ -16,14 +16,6 @@ version = "1.42.0"
 
 [[package]]
 category = "main"
-description = "parse() is the opposite of format()"
-name = "parse"
-optional = false
-python-versions = "*"
-version = "1.12.0"
-
-[[package]]
-category = "main"
 description = "VLC bindings for python."
 name = "python-vlc"
 optional = false
@@ -31,11 +23,10 @@ python-versions = "*"
 version = "3.0.6109"
 
 [metadata]
-content-hash = "12c4216c2abedc63824933aa64d5cf1d181de6fa55b02768340d879269bfe846"
+content-hash = "210f27190bb9e010b33a1b29c5843be3016025f215ca526800f14d21772be7a6"
 python-versions = "^3.7"
 
 [metadata.hashes]
 atomicwrites = ["03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4", "75a9445bac02d8d058d5e1fe689654ba5a6556a1dfd8ce6ec55a0ed79866cfa6"]
 mutagen = ["bb61e2456f59a9a4a259fbc08def6d01ba45a42da8eeaa97d00633b0ec5de71c"]
-parse = ["1b68657434d371e5156048ca4a0c5aea5afc6ca59a2fea4dd1a575354f617142"]
 python-vlc = ["0c2c6b4e4b0cad162a694e7740a8571f12fd7eebacd5b55c93e457f917b89cd7", "fd24075cde4febb9611d5be412ba8d3998a8c59d24dd9d1d2b76376dc831bc7b"]
