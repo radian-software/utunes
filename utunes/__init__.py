@@ -232,7 +232,10 @@ def subcmd_read(filters, sorts, illegal_chars, format_str):
                             )
                         )
         output.append(format_str.format(**song))
-    print("".join(output))
+    if output:
+        print("".join(output))
+    else:
+        print("µTunes: no matching songs", file=sys.stderr)
 
 
 def subcmd_write(regex, playlist):
@@ -286,10 +289,10 @@ def main():
         "format", metavar="FORMAT",
         help="Python str.format string for listing output"
     )
-    parser_read.add_argument("-f", "--filter", dest="filters",
+    parser_read.add_argument("-f", "--filter", dest="filters", default=[],
                              action="append", metavar="FIELD=REGEX",
                              help="filter songs by the given field")
-    parser_read.add_argument("-s", "--sort", dest="sorts",
+    parser_read.add_argument("-s", "--sort", dest="sorts", default=[],
                              action="append", metavar="Q:FIELD",
                              help="sort songs by the given field (Q is one of srxSR)")
     parser_read.add_argument(
