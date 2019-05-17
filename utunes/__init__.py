@@ -206,7 +206,7 @@ class Library:
             )
         for old_filename, new_filename in renames.items():
             old_filename.rename(new_filename)
-        print("µTunes: writing library database")
+        print("µTunes: writing library database", file=sys.stderr)
         json_fname = self.get_json_filename()
         with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
             json.dump(self.data, f, indent=2)
