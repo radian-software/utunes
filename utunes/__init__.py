@@ -3,11 +3,13 @@ import glob
 import json
 import os
 import pathlib
+import random
 import re
 import string
 import sys
 
 import atomicwrites
+import parse
 
 
 class UnsetClass:
@@ -29,6 +31,16 @@ class UserError(Exception):
 
 class InternalError(Exception):
     pass
+
+
+def get_nonce(s):
+    """
+    Return a string that is not a substring of s.
+    """
+    while True:
+        nonce = "".join(random.choices(string.ascii_lowercase, k=4))
+        if nonce not in s:
+            return nonce
 
 
 def is_path_occupied(p):
@@ -114,8 +126,22 @@ def subcmd_read(filters, sorts, illegal_chars, format_str):
     print("".join(output))
 
 
-def subcmd_write(regex, playlist):
-    raise InternalError("not yet implemented")
+def subcmd_write(format_str, playlist):
+    lib = Library()
+    nonce = get_nonce(format_str)
+    format_str_with_nonce = format_str + "{" + nonce + "}"
+    input_str = sys.stdin.read()
+    songs = []
+    while input_str:
+        result = parse.parse(format_str_with_nonce, input_str)
+        if res.fixed:
+            raise UserError("format string uses anonymous fields: {}"
+                            .format(repr(format_str)))
+        song = result.named
+        song.pop(nonce)
+        songs.append(song)
+    lib.write(songs=songs, playlist=playlist)
+    lib.commit_changes()
 
 
 def subcmd_playback():
@@ -160,7 +186,8 @@ def main():
         "write", help="update song metadata and playlists from stdin"
     )
     parser_update.add_argument(
-        "regex", metavar="REGEX", help="regex for parsing input"
+        "format", metavar="FORMAT",
+        help="Python str.format string for parsing input"
     )
     parser_update.add_argument(
         "playlist", nargs="?", default=UNSET,
@@ -202,7 +229,7 @@ def main():
                 format_str=args.format,
             )
         elif args.subcommand == "write":
-            subcmd_update(regex=args.regex, playlist=args.playlist)
+            subcmd_write(format_str=args.format, playlist=args.playlist)
         elif args.subcommand == "playback":
             subcmd_playback()
         else:
