@@ -189,7 +189,6 @@ class Library:
                 self.get_music_dirname() / new_filename
             )
         for old_filename, new_filename in renames.items():
-            print(old_filename, new_filename)
             if not old_filename.is_file():
                 raise UserError("no such file: {}".format(old_filename))
             if is_path_occupied(new_filename):
