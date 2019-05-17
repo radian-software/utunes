@@ -101,7 +101,8 @@ class Library:
             for field, regex in filters:
                 if field not in song:
                     return False
-                return re.fullmatch(regex, song[field])
+                if not re.fullmatch(regex, song[field]):
+                    return False
             return True
         return check_song
 
@@ -138,23 +139,25 @@ class Library:
         songs = list(filter(check_song, self.data["songs"].values()))
         for field, mode in reversed(sorts):
             if mode in "sr":
-                key = id
+                def key(song):
+                    return song[field]
             elif mode in "SR":
-                def key(val):
+                def key(song):
                     try:
-                        return False, int(val)
+                        return False, int(song[field])
                     except ValueError:
-                        return True, val
+                        return True, song[field]
             elif mode == "x":
-                keys = list({songs[field] for song in songs})
-                random.shuffle(keys)
-                values = {idx: key for idx, key in keys.enumerate()}
+                values = list({song[field] for song in songs})
+                random.shuffle(values)
+                values = {value: idx for idx, value in enumerate(values)}
 
-                def key(val):
-                    return values[val]
+                def key(song):
+                    return values[song[field]]
             else:
                 raise InternalError("unexpected mode: " + mode)
             reverse = mode in "rR"
+
             songs.sort(key=key, reverse=reverse)
         return songs
 
