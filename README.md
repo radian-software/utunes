@@ -94,10 +94,12 @@ made to the music library format.
 
 Songs may have arbitrary keys and values, as long as the keys do not
 contain `:` characters and the values are non-empty strings, but the
-`id` key is required. It is a eight-character hexadecimal string
-guaranteed to be unique within the music library. Some of the keys, if
-present, are used in automatically generated filenames for song files:
-`album`, `title`, `disc`, `track`, and `id`.
+`id` and `filename` keys are required. The `id` key is a
+eight-character hexadecimal string guaranteed to be unique within the
+music library. The `filename` key is the path to the media file,
+relative to the `music` directory. Some of the keys, if present, are
+used in automatically generated filenames for song files: `album`,
+`title`, `disc`, `track`, and `id`.
 
 After some normalization is performed on special characters to make
 them play nicely with the filesystem, the format for song filenames is
@@ -138,9 +140,6 @@ For each song, the provided format string is passed to Python's
 arguments (e.g. `{id}` expands to `60c223fb`). Generally, the format
 string is expected to end with a newline.
 
-The `filename` special field can also be used, and expands to the song
-file's path on disk, relative to the `music` directory.
-
 The `--filter` argument can be used to limit output. The field can be
 any key; songs which are missing that key or whose value for that key
 does not match the provided regex (with a match spanning the full
@@ -176,15 +175,14 @@ specifiers whose names correspond to keys in a song object (e.g.
 `{album}`). If there is a format specifier for `id` (e.g. `{id}`),
 then the other fields will be updated in the library database as
 directed, if needed, and song files will be renamed accordingly.
-Otherwise, there must be a format specifier for the special field
-`filename`, and the song will be imported into the library database,
-with the file renamed appropriately from the given filename. If the
-value for a capture group is empty, then the key is removed from the
-song. This is not allowed for the `id` field. If the special field
-`delete` is non-empty, then songs are removed from the library
-database and their files are moved to the `trash` subdirectory of the
-library directory (next to `music`, with the same subdirectory
-structure).
+Otherwise, there must be a format specifier for `filename`, and the
+song will be imported into the library database, with the file renamed
+appropriately from the given filename. If the value for a capture
+group is empty, then the key is removed from the song. This is not
+allowed for the `id` field. If the special field `delete` is
+non-empty, then songs are removed from the library database and their
+files are moved to the `trash` subdirectory of the library directory
+(next to `music`, with the same subdirectory structure).
 
 If you provide a playlist name, then the given playlist is overwritten
 with the provided songs in the given order.
