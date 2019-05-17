@@ -102,6 +102,7 @@ class Library:
                 if field not in song:
                     return False
                 return re.fullmatch(regex, song[field])
+            return True
         return check_song
 
     def get_json_filename(self):
@@ -151,6 +152,8 @@ class Library:
 
                 def key(val):
                     return values[val]
+            else:
+                raise InternalError("unexpected mode: " + mode)
             reverse = mode in "rR"
             songs.sort(key=key, reverse=reverse)
         return songs
@@ -233,7 +236,7 @@ def subcmd_read(filters, sorts, illegal_chars, format_str):
                         )
         output.append(format_str.format(**song))
     if output:
-        print("".join(output))
+        print("".join(output), end="")
     else:
         print("µTunes: no matching songs", file=sys.stderr)
 
@@ -340,7 +343,7 @@ def main():
                 if not match:
                     parser_read.error("malformed sort string: {}".format(repr(sort_str)))
                 qualifier, field = match.groups()
-                sorts.append((qualifier, field))
+                sorts.append((field, qualifier))
             subcmd_read(
                 filters=filters, sorts=sorts,
                 illegal_chars=args.illegal_chars,
