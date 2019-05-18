@@ -92,18 +92,17 @@ The file `utunes.json` is structured as follows:
 The `version` key will be incremented every time breaking changes are
 made to the music library format.
 
-Songs may have arbitrary keys and values, as long as the keys do not
-contain `:` characters and the values are non-empty strings, but the
-`id` and `filename` keys are required. The `id` key is a
-eight-character hexadecimal string guaranteed to be unique within the
-music library. The `filename` key is the path to the media file,
+Songs may have arbitrary keys and values, as long as both are
+non-empty, but the `id` and `filename` keys are required. The `id` key
+is a eight-character hexadecimal string guaranteed to be unique within
+the music library. The `filename` key is the path to the media file,
 relative to the `music` directory. Some of the keys, if present, are
 used in automatically generated filenames for song files: `album`,
 `title`, `disc`, `track`, and `id`.
 
 After some normalization is performed on special characters to make
 them play nicely with the filesystem, the format for song filenames is
-`music/{album}/{disc:02s}-{track:03s}-{id} {title}.mp3`.
+essentially `music/{album}/{disc:02d}-{track:03d}-{id} {title}.mp3`.
 
 The file `playback.json` has the following format:
 
@@ -204,7 +203,7 @@ the input JSON any or all of the keys may be omitted, and the
       "playing": true
     }
 
-If the playback server is running, µTunes starts it first. Then,
+If the playback server is not running, µTunes starts it first. Then,
 µTunes makes all of the changes described in the input JSON,
 including: switching playlist, seeking to a particular (one-based)
 index in the playlist, seeking to a particular offset within the song
