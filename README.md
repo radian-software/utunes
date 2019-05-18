@@ -232,6 +232,8 @@ Interactive commands provided by the Emacs frontend are:
 
 ## Installation
 
+Playback requires installing [MPlayer] (for now).
+
 The backend may be installed as a standard Python package from this
 GitHub repository. It is recommended to use [pipx]:
 
@@ -250,6 +252,19 @@ Emacs package first and then running:
 
 (This last command currently suffers from a [bug in Pip][pipx#151].)
 
+## Todo
+
+In order of priority.
+
+* Import my own playlists.
+* Search by playlist.
+* Emacs frontend.
+* Generic importer.
+* Removing songs.
+* Play statistics.
+* Better documentation.
+
+[mplayer]: http://www.mplayerhq.hu/
 [pipx]: https://github.com/pipxproject/pipx
 [pipx#151]: https://github.com/pipxproject/pipx/issues/151
 [straight.el]: https://github.com/raxod502/straight.el

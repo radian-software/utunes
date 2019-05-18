@@ -1,14 +1,19 @@
 import argparse
 import glob
 import json
+import multiprocessing.connection
 import os
 import pathlib
 import random
 import re
+import shutil
 import string
+import subprocess
 import sys
+import time
 
 import atomicwrites
+import portalocker
 
 
 class UnsetClass:
@@ -22,6 +27,10 @@ class UnsetClass:
 
 # Singleton object that can be used to indicate "no value".
 UNSET = UnsetClass()
+
+
+def log(msg):
+    print("µTunes: {}".format(msg), file=sys.stderr)
 
 
 class UserError(Exception):
@@ -57,9 +66,18 @@ def path_walk(p):
     return (pathlib.Path(p) for p in paths)
 
 
+def read_stdin():
+    try:
+        return sys.stdin.read()
+    except OSError as e:
+        raise UserError("failed to read stdin: {}".format(e))
+
+
 class Paths:
     json_basename = pathlib.Path("utunes.json")
     music_basename = pathlib.Path("music")
+    socket_basename = pathlib.Path("socket")
+    server_log_basename = pathlib.Path("server.log")
 
 
 class Library:
@@ -112,6 +130,12 @@ class Library:
     def get_music_dirname(self):
         return self.library_root / Paths.music_basename
 
+    def get_socket_filename(self):
+        return self.library_root / Paths.socket_basename
+
+    def get_server_log_filename(self):
+        return self.library_root / Paths.server_log_basename
+
     def __init__(self):
         self.library_root = Library.find_library_root()
         json_fname = self.get_json_filename()
@@ -123,13 +147,23 @@ class Library:
             except (OSError, json.JSONDecodeError) as e:
                 raise UserError(
                     "error reading library file: {}".format(e)
-                ) from None
+                )
         if self.data is UNSET:
             self.data = {
                 "version": 1,
                 "songs": {},
                 "playlists": {},
             }
+
+    def get_song_filename(self, playlist, index):
+        playlist = self.data["playlists"].get(playlist)
+        if playlist is None:
+            return UNSET
+        try:
+            filename = self.data["songs"][playlist[index]]["filename"]
+            return self.get_music_dirname() / filename
+        except ValueError:
+            return UNSET
 
     def read(self, filters, sorts):
         if any(field == "playlist" for field, regex in filters):
@@ -218,18 +252,18 @@ class Library:
         for old_filename, new_filename in renames.items():
             new_filename.parent.mkdir(parents=True, exist_ok=True)
         if renames:
-            print(
-                "µTunes: renaming {} file{}"
-                .format(len(renames), "s" if len(renames) != 1 else ""),
-                file=sys.stderr
+            log(
+                "renaming {} file{}"
+                .format(len(renames), "s" if len(renames) != 1 else "")
             )
         for old_filename, new_filename in renames.items():
             old_filename.rename(new_filename)
-        print("µTunes: writing library database", file=sys.stderr)
+        log("writing library database")
         json_fname = self.get_json_filename()
-        with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
-            json.dump(self.data, f, indent=2)
-            f.write("\n")
+        with portalocker.Lock(json_fname, portalocker.LOCK_EX):
+            with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
+                json.dump(self.data, f, indent=2)
+                f.write("\n")
 
 
 def extract_fields(format_str):
@@ -257,12 +291,12 @@ def subcmd_read(filters, sorts, illegal_chars, format_str):
     if output:
         print("".join(output), end="")
     else:
-        print("µTunes: no matching songs", file=sys.stderr)
+        log("no matching songs")
 
 
 def subcmd_write(regex, playlist):
     lib = Library()
-    input_str = sys.stdin.read()
+    input_str = read_stdin()
     location = 0
     partial_songs = []
     while input_str:
@@ -284,8 +318,80 @@ def subcmd_write(regex, playlist):
     lib.write(partial_songs=partial_songs, playlist=playlist)
 
 
+class BindFailedError(Exception):
+    pass
+
+
+def call_server(socket_fname, msg):
+    try:
+        conn = multiprocessing.connection.Client(str(socket_fname))
+    except OSError as e:
+        raise BindFailedError("failed to bind to socket: {}".format(e))
+    with conn:
+        try:
+            conn.send(msg)
+            resp = conn.recv()
+        except ValueError as e:
+            raise InternalError(
+                "failed to send to playback server: {}".format(e)
+            )
+        except EOFError:
+            raise InternalError(
+                "did not receive response from playback server"
+            )
+    error = resp.pop("error")
+    async_errors = resp.pop("async_errors")
+    for e in async_errors:
+        log("error from server: {}".format(e))
+    if error:
+        raise UserError(error)
+    return resp
+
+
+def is_server_live(socket_fname):
+    try:
+        call_server(socket_fname, {})
+    except BindFailedError:
+        return False
+    return True
+
+
 def subcmd_playback():
-    raise InternalError("not yet implemented")
+    if not shutil.which("mplayer"):
+        raise UserError("command not found: mplayer")
+    lib = Library()
+    msg = read_stdin()
+    try:
+        msg = json.loads(msg)
+    except json.JSONDecodeError:
+        raise UserError("got malformed JSON from stdin: {}".format(repr(msg)))
+    socket_fname = lib.get_socket_filename()
+    if not is_server_live(socket_fname):
+        try:
+            with open(lib.get_server_log_filename(), "a") as f:
+                f.write("---\nStarting playback server...\n")
+                subprocess.Popen(["nohup", "python", "-m", "utunes.server"],
+                                 preexec_fn=os.setpgrp, cwd=lib.library_root,
+                                 stdout=f, stderr=f)
+        except OSError as e:
+            raise InternalError("failed to spawn playback server: {}" .format(e))
+        # Wait up to one second for the server to start.
+        live = False
+        for i in range(20):
+            time.sleep(0.05)
+            if is_server_live(lib):
+                live = True
+                break
+        if not live:
+            raise InternalError(
+                "playback server failed to bind to socket within 1 second"
+            )
+    try:
+        resp = call_server(socket_fname, msg)
+    except BindFailedError as e:
+        raise InternalError(e)
+    json.dump(resp, sys.stdout, indent=2)
+    print()
 
 
 def main():
@@ -346,7 +452,7 @@ def main():
                 os.chdir(args.cd_dir)
             except OSError as e:
                 raise UserError("couldn't change directory to {}: {}"
-                                .format(repr(args.cd_dir), e)) from None
+                                .format(repr(args.cd_dir), e))
 
         if args.subcommand == "read":
             filters = []
@@ -379,6 +485,6 @@ def main():
         else:
             raise InternalError
     except UserError as e:
-        print("µTunes: {}".format(e), file=sys.stderr)
+        log(e)
         sys.exit(1)
     sys.exit(0)
