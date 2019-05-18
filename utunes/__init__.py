@@ -379,6 +379,6 @@ def main():
         else:
             raise InternalError
     except UserError as e:
-        print("utunes: {}".format(e), file=sys.stderr)
+        print("µTunes: {}".format(e), file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
