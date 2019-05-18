@@ -201,6 +201,9 @@ class Library:
         self.data["songs"] = {song["id"]: song for song in songs}
         if playlist is not None:
             self.data["playlists"][playlist] = updated_song_ids
+        playlists = list(self.data["playlists"].items())
+        playlists.sort(lambda i: i[0])
+        self.data["playlists"] = dict(playlists)
         for old_filename, new_filename in renames.items():
             if not old_filename.is_file():
                 raise UserError("no such file: {}".format(old_filename))
