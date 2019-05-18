@@ -179,7 +179,10 @@ class Library:
                         song.pop(key)
             else:
                 song_id = get_nonce(k=8, s=songs, alphabet="0123456789abcdef")
-                song = {"id": song_id, **partial_song}
+                song = {"id": song_id}
+                for field, value in partial_song.items():
+                    if value:
+                        song[field] = value
                 songs[song_id] = song
             updated_song_ids.add(song_id)
         renames = {}
