@@ -199,10 +199,16 @@ class Library:
         songs = list(self.data["songs"].values())
         songs.sort(key=lambda s: s["filename"])
         self.data["songs"] = {song["id"]: song for song in songs}
-        if playlist is not None:
-            self.data["playlists"][playlist] = updated_song_ids
+        if playlist is not UNSET:
+            if updated_song_ids:
+                self.data["playlists"][playlist] = updated_song_ids
+            else:
+                try:
+                    self.data["playlists"].pop(playlist)
+                except KeyError:
+                    pass
         playlists = list(self.data["playlists"].items())
-        playlists.sort(lambda i: i[0])
+        playlists.sort(key=lambda i: i[0])
         self.data["playlists"] = dict(playlists)
         for old_filename, new_filename in renames.items():
             if not old_filename.is_file():
