@@ -124,7 +124,6 @@ class Library:
                 raise UserError(
                     "error reading library file: {}".format(e)
                 ) from None
-        # TODO: validate data format
         if self.data is UNSET:
             self.data = {
                 "version": 1,
