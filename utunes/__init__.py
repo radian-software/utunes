@@ -196,6 +196,9 @@ class Library:
             renames[self.get_music_dirname() / old_filename] = (
                 self.get_music_dirname() / new_filename
             )
+        songs = list(self.data["songs"].values())
+        songs.sort(key=lambda s: s["filename"])
+        self.data["songs"] = {song["id"]: song for song in songs}
         for old_filename, new_filename in renames.items():
             if not old_filename.is_file():
                 raise UserError("no such file: {}".format(old_filename))
