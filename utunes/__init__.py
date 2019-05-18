@@ -162,7 +162,7 @@ class Library:
 
     def write(self, partial_songs, playlist):
         songs = self.data["songs"]
-        updated_song_ids = set()
+        updated_song_ids = []
         for partial_song in partial_songs:
             song_id = partial_song.get("id")
             if song_id:
@@ -184,9 +184,9 @@ class Library:
                     if value:
                         song[field] = value
                 songs[song_id] = song
-            updated_song_ids.add(song_id)
+            updated_song_ids.append(song_id)
         renames = {}
-        for song_id in updated_song_ids:
+        for song_id in set(updated_song_ids):
             song = self.data["songs"][song_id]
             old_filename = pathlib.Path(song["filename"])
             new_filename = Library.get_canonical_filename(song)
@@ -199,6 +199,8 @@ class Library:
         songs = list(self.data["songs"].values())
         songs.sort(key=lambda s: s["filename"])
         self.data["songs"] = {song["id"]: song for song in songs}
+        if playlist is not None:
+            self.data["playlists"][playlist] = updated_song_ids
         for old_filename, new_filename in renames.items():
             if not old_filename.is_file():
                 raise UserError("no such file: {}".format(old_filename))
