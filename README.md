@@ -256,7 +256,6 @@ Emacs package first and then running:
 
 In order of priority.
 
-* Import my own playlists.
 * Emacs frontend.
 * Generic importer.
 * Removing songs.

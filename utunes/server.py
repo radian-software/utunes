@@ -364,6 +364,9 @@ def kill_children_on_exit():
     # <https://stackoverflow.com/a/31464349/3538165>. If we don't do
     # this, then the mplayer instance we spawn will just be reparented
     # and continue running after we exit.
+    #
+    # (Is this still needed now that we switched from spawning mplayer
+    # in a subprocess to using python-mpv?)
     os.getpgrp()
 
     def kill_children():
