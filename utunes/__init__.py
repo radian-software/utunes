@@ -163,7 +163,7 @@ class Library:
         try:
             filename = self.data["songs"][playlist[index]]["filename"]
             return self.get_music_dirname() / filename
-        except ValueError:
+        except (ValueError, IndexError):
             return UNSET
 
     def read(self, filters, sorts):
