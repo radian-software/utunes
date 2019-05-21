@@ -167,10 +167,21 @@ class Library:
             return UNSET
 
     def read(self, filters, sorts):
-        if any(field == "playlist" for field, regex in filters):
-            raise InternalError("not yet implemented")
         check_song = Library.filters_to_function(filters)
-        songs = list(filter(check_song, self.data["songs"].values()))
+        if any(field == "playlist" for field, regex in filters):
+            filtered_songs = {}
+            for playlist_name, song_ids in self.data["playlists"].items():
+                for idx, song_id in enumerate(song_ids):
+                    if song_id in filtered_songs:
+                        continue
+                    song = self.data["songs"][song_id]
+                    song_copy = dict(song)
+                    song_copy["playlist"] = "{}:{}".format(playlist_name, idx)
+                    if check_song(song_copy):
+                        filtered_songs[song_id] = song
+            songs = list(filtered_songs.values())
+        else:
+            songs = list(filter(check_song, self.data["songs"].values()))
         for field, mode in reversed(sorts):
             if mode in "sr":
                 def key(song):
