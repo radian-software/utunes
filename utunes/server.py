@@ -3,11 +3,12 @@ import argparse
 import atexit
 import multiprocessing.connection
 import os
-import re
 import signal
-import subprocess
 import sys
 import threading
+import time
+
+import mpv
 
 import utunes
 from utunes import UNSET
@@ -125,138 +126,77 @@ class Player(abc.ABC):
         pass
 
 
-class MPlayerPlayer(Player):
-
-    def die(self, msg):
-        self.log_error(msg)
-        sys.exit(1)
+class MPVPlayer(Player):
 
     def __init__(self, callback, log_error):
         super().__init__(callback, log_error)
-        try:
-            self.proc = subprocess.Popen(
-                [
-                    "mplayer", "-slave", "-idle", "-quiet",
-                    # Recommended in the "docs" at
-                    # <http://www.mplayerhq.hu/DOCS/tech/slave.txt>.
-                    "-input", "nodefault-bindings", "-noconfig", "all",
-                ],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                # Use line buffering.
-                bufsize=0,
-            )
-        except OSError as e:
-            self.die("failed to spawn mplayer: {}".format(e))
-        self.stdin = self.proc.stdin
-        self.stdout = utunes.nbstreamreader.NonBlockingStreamReader(
-            self.proc.stdout,
-        )
-        self.lock = threading.Lock()
-        self.last_pos = UNSET
-        self.ticket = UNSET
+        self.seek_finished_event = threading.Event()
+        self.mpv = mpv.MPV()
+        self.mpv.pause = True
+        self.mpv.event_callback("end-file")(self.handle_end_file)
+        self.mpv.event_callback("seek")(self.handle_seek)
 
-    def runcmd(self, cmd, ans=UNSET, optional=False, timeout=0.1, quoted=False):
-        with self.lock:
-            if is_debug_enabled():
-                print("> " + cmd, file=sys.stderr)
-            try:
-                self.stdin.write((cmd + "\n").encode())
-            except OSError as e:
-                self.die("failed to write to mplayer stdin: {}".format(e))
-            resp = UNSET
-            while True:
-                line = self.stdout.readline(timeout=timeout)
-                if line is None:
-                    break
-                line = line.decode()
-                if not line:
-                    self.die("mplayer stdout closed unexpectedly")
-                if is_debug_enabled():
-                    print(line, end="", file=sys.stderr)
-                if ans is not UNSET:
-                    if quoted:
-                        fmt = r"ANS_{}='(.+)'\n"
-                    else:
-                        fmt = r"ANS_{}=(.+)\n"
-                    m = re.fullmatch(fmt.format(ans), line)
-                    if m:
-                        resp = m.group(1)
-            if ans is not UNSET and resp is UNSET and not optional:
-                self.die("mplayer failed to respond to command: {}"
-                         .format(cmd))
-            return resp
-
-    def get_float(self, cmd, ans):
-        resp = self.runcmd(cmd, ans=ans, optional=True)
-        if resp is UNSET:
-            return UNSET
-        try:
-            return float(resp)
-        except ValueError:
-            self.die("non-numeric {} from mplayer: {}".format(ans, repr(resp)))
-
-    def get_time_pos(self):
-        return self.get_float(
-            cmd="pausing_keep_force get_time_pos", ans="TIME_POSITION",
-        )
-
-    def check_if_done(self, ticket):
-        if ticket is not self.ticket:
-            return
-        new_pos = self.get_time_pos()
-        finished = new_pos is UNSET and self.last_pos is not UNSET
-        self.last_pos = new_pos
-        if finished:
+    def handle_end_file(self, event_data):
+        reason = event_data["event"]["reason"]
+        error = event_data["event"].get("error")
+        # Unfortunately, python-mpv doesn't translate these enum
+        # values. I grabbed them from the MPV source repository.
+        if reason == 0:  # eof
             self.callback()
-        else:
-            timer = threading.Timer(0.1, self.check_if_done, args=(ticket,))
-            timer.daemon = True
-            timer.start()
+        elif reason == 4:  # error
+            self.log_error("MPV error: {}".format(error))
+
+    def handle_seek(self, event):
+        self.seek_finished_event.set()
 
     def load(self, filename):
-        self.runcmd("pausing_keep_force loadfile {}".format(filename))
-        self.ticket = object()
+        self.mpv.pause = True
+        self.mpv.loadfile(str(filename))
+        # For some reason, self.mpv.wait_for_property("seekable")
+        # hangs infinitely sometimes, even though the property gets
+        # set.
+        while not self.mpv.seekable:
+            time.sleep(0.01)
 
     def unload(self):
-        self.load(os.devnull)
+        self.mpv.stop()
 
     def play(self):
-        if not self.is_playing():
-            self.runcmd("pause")
-            self.check_if_done(self.ticket)
+        self.mpv.pause = False
 
     def pause(self):
-        if self.is_playing():
-            self.runcmd("pause")
-            self.ticket = object()
+        self.mpv.pause = True
 
     def is_playing(self):
-        paused = self.runcmd(
-            "pausing_keep_force get_property pause", ans="pause"
-        )
-        if paused not in ("yes", "no"):
-            self.die("unexpected pause state from mplayer: {}"
-                     .format(repr(paused)))
-        return paused == "no"
+        return not self.mpv.pause
 
     def seek(self, pos):
-        self.runcmd("pausing_keep seek {} 2".format(pos))
+        self.seek_finished_event.clear()
+        self.mpv.seek(pos, "absolute")
+        self.seek_finished_event.wait()
 
     def tell(self):
-        return self.get_time_pos()
+        pos = self.mpv.playback_time
+        if pos is None:
+            return UNSET
+        return pos
 
     def tell_end(self):
-        return self.get_float(
-            cmd="pausing_keep_force get_time_length", ans="LENGTH"
-        )
+        # Make sure not to use self.mpv.length. The documentation
+        # claims that length and duration are equivalent, but actually
+        # length is always 'none'.
+        length = self.mpv.duration
+        if length is None:
+            return UNSET
+        return length
 
 
 class Server:
 
     def __init__(self, playlist=UNSET, index=UNSET, seek=UNSET):
         self.lock = threading.Lock()
-        self.player = MPlayerPlayer(self.advance_song, self.log_error)
+        self.error_lock = threading.Lock()
+        self.player = MPVPlayer(self.advance_song, self.log_error)
         self.playlist = UNSET
         self.index = UNSET
         self.last_json_mtime = UNSET
@@ -314,7 +254,9 @@ class Server:
     def advance_song(self):
         with self.lock:
             if self.playlist is not UNSET and self.index is not UNSET:
-                self.update(self.playlist, self.index + 1)
+                self.update(
+                    playlist=self.playlist, index=self.index + 1, playing=True
+                )
 
     def handle_msg(self, msg):
         if not isinstance(msg, dict):
@@ -351,6 +293,9 @@ class Server:
             seek_end = self.player.tell_end()
             if seek_end is UNSET:
                 seek_end = None
+            with self.error_lock:
+                async_errors = list(self.errors)
+                self.errors = []
             resp = {
                 "error": None,
                 "playlist": playlist,
@@ -358,14 +303,13 @@ class Server:
                 "seek": seek,
                 "seek_end": seek_end,
                 "playing": self.player.is_playing(),
-                "async_errors": self.errors,
+                "async_errors": async_errors,
             }
-            self.errors = []
             return resp
 
     def log_error(self, msg):
         log(msg)
-        with self.lock:
+        with self.error_lock:
             self.errors.append(msg)
 
 

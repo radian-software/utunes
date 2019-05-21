@@ -232,7 +232,7 @@ Interactive commands provided by the Emacs frontend are:
 
 ## Installation
 
-Playback requires installing [MPlayer] (for now).
+Playback requires installing [MPV].
 
 The backend may be installed as a standard Python package from this
 GitHub repository. It is recommended to use [pipx]:
@@ -264,7 +264,7 @@ In order of priority.
 * Play statistics.
 * Better documentation.
 
-[mplayer]: http://www.mplayerhq.hu/
+[mpv]: https://mpv.io/
 [pipx]: https://github.com/pipxproject/pipx
 [pipx#151]: https://github.com/pipxproject/pipx/issues/151
 [straight.el]: https://github.com/raxod502/straight.el
