@@ -261,7 +261,7 @@ class Library:
             old_filename.rename(new_filename)
         log("writing library database")
         json_fname = self.get_json_filename()
-        with portalocker.Lock(json_fname, portalocker.LOCK_EX):
+        with portalocker.Lock(json_fname, "r"):
             with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
                 json.dump(self.data, f, indent=2)
                 f.write("\n")
