@@ -14,6 +14,7 @@ import time
 
 import atomicwrites
 import portalocker
+import psutil
 
 
 class UnsetClass:
@@ -356,6 +357,15 @@ def is_server_live(socket_fname):
     return True
 
 
+def kill_server():
+    for proc in psutil.process_iter():
+        try:
+            if proc.cmdline() == ["python", "-m", "utunes.server"]:
+                proc.terminate()
+        except psutil.Error:
+            pass
+
+
 def subcmd_playback():
     if not shutil.which("mplayer"):
         raise UserError("command not found: mplayer")
@@ -367,19 +377,22 @@ def subcmd_playback():
         raise UserError("got malformed JSON from stdin: {}".format(repr(msg)))
     socket_fname = lib.get_socket_filename()
     if not is_server_live(socket_fname):
+        kill_server()
         try:
             with open(lib.get_server_log_filename(), "a") as f:
                 f.write("---\nStarting playback server...\n")
+                env = dict(os.environ)
+                env["PYTHONUNBUFFERED"] = "1"
                 subprocess.Popen(["nohup", "python", "-m", "utunes.server"],
                                  preexec_fn=os.setpgrp, cwd=lib.library_root,
-                                 stdout=f, stderr=f)
+                                 stdout=f, stderr=f, env=env)
         except OSError as e:
             raise InternalError("failed to spawn playback server: {}" .format(e))
         # Wait up to one second for the server to start.
         live = False
         for i in range(20):
             time.sleep(0.05)
-            if is_server_live(lib):
+            if is_server_live(socket_fname):
                 live = True
                 break
         if not live:
