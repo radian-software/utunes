@@ -358,27 +358,5 @@ def main():
                 server.log_error("got error during send: {}".format(e))
 
 
-def kill_children_on_exit():
-    # Make sure we clean up any subprocesses we spawn. See
-    # <https://stackoverflow.com/a/322317/3538165>,
-    # <https://stackoverflow.com/a/320712/3538165>,
-    # <https://stackoverflow.com/a/50329596/3538165>,
-    # <https://stackoverflow.com/a/31464349/3538165>. If we don't do
-    # this, then the mplayer instance we spawn will just be reparented
-    # and continue running after we exit.
-    #
-    # (Is this still needed now that we switched from spawning mplayer
-    # in a subprocess to using python-mpv?)
-    os.getpgrp()
-
-    def kill_children():
-        signal.signal(signal.SIGTERM, lambda *args: None)
-        os.killpg(0, signal.SIGTERM)
-
-    atexit.register(kill_children)
-
-
 if __name__ == "__main__":
-    os.setpgrp()
-    atexit.register(lambda: os.killpg(0, signal.SIGTERM))
     main()
