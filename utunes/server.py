@@ -19,12 +19,6 @@ def log(msg):
     print("µTunes server: {}".format(msg), file=sys.stderr)
 
 
-def make_error(msg):
-    return {
-        "error": msg,
-    }
-
-
 def is_debug_enabled():
     return bool(os.environ.get("UTUNES_SERVER_DEBUG"))
 
@@ -261,29 +255,38 @@ class Server:
                     playlist=self.playlist, index=self.index + 1, playing=True
                 )
 
+    def make_error(self, msg):
+        with self.error_lock:
+            async_errors = list(self.errors)
+            self.errors = []
+        return {
+            "error": msg,
+            "async_errors": async_errors,
+        }
+
     def handle_msg(self, msg):
         if not isinstance(msg, dict):
-            return make_error("not an object: {}".format(repr(msg)))
+            return self.make_error("not an object: {}".format(repr(msg)))
         playlist = msg.get("playlist", UNSET)
         index = msg.get("index", UNSET)
         seek = msg.get("seek", UNSET)
         playing = msg.get("playing", UNSET)
         if playlist is not UNSET:
             if not isinstance(playlist, str):
-                return make_error("not a string: {}".format(repr(playlist)))
+                return self.make_error("not a string: {}".format(repr(playlist)))
         if index is not UNSET:
             if not isinstance(index, int):
-                return make_error("not an integer: {}".format(repr(index)))
+                return self.make_error("not an integer: {}".format(repr(index)))
             if index < 0:
-                return make_error("index is negative: {}".format(repr(index)))
+                return self.make_error("index is negative: {}".format(repr(index)))
         if seek is not UNSET:
             if not isinstance(seek, (int, float)):
-                return make_error("not a number: {}".format(repr(seek)))
+                return self.make_error("not a number: {}".format(repr(seek)))
             if seek < 0:
-                return make_error("seek is negative: {}".format(repr(seek)))
+                return self.make_error("seek is negative: {}".format(repr(seek)))
         if playing is not UNSET:
             if playing not in (True, False, "toggle"):
-                return make_error(
+                return self.make_error(
                     "unknown 'playing' value: {}".format(repr(playing))
                 )
         with self.lock:
