@@ -204,8 +204,7 @@ class Server:
         self.last_json_mtime = UNSET
         self.next_song_filename = UNSET
         self.errors = []
-        self.lib = utunes.Library()
-        os.chdir(self.lib.library_root)
+        os.chdir(utunes.Library.find_library_root())
 
     def update(self, playlist=UNSET, index=UNSET, seek=UNSET, playing=UNSET):
         switching_playlists = playlist is not UNSET and playlist != self.playlist
@@ -225,12 +224,13 @@ class Server:
                     switching_to_next and
                     self.next_song_filename is not UNSET and
                     self.last_json_mtime is not UNSET and
-                    self.lib.get_json_filename().stat().st_mtime ==
+                    utunes.Paths.json_basename.stat().st_mtime ==
                     self.last_json_mtime
             ):
                 filename = self.next_song_filename
             elif self.playlist is not UNSET and self.index is not UNSET:
-                filename = self.lib.get_song_filename(self.playlist, self.index)
+                lib = utunes.Library()
+                filename = lib.get_song_filename(self.playlist, self.index)
             else:
                 filename = UNSET
             if filename is not UNSET:
@@ -249,8 +249,9 @@ class Server:
 
     def compute_next_song(self):
         with self.lock:
-            self.last_json_mtime = self.lib.get_json_filename().stat().st_mtime
-            filename = self.lib.get_song_filename(self.playlist, self.index + 1)
+            lib = utunes.Library()
+            self.last_json_mtime = lib.get_json_filename().stat().st_mtime
+            filename = lib.get_song_filename(self.playlist, self.index + 1)
             self.next_song_filename = filename
 
     def advance_song(self):
