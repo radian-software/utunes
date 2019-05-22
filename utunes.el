@@ -29,6 +29,7 @@
 
 (require 'cl-lib)
 (require 'json)
+(require 'let-alist)
 (require 'map)
 (require 'subr-x)
 
@@ -189,6 +190,34 @@ appropriate. An empty alist (nil) is fine as input."
                          (funcall
                           callback (utunes--snake-to-kebab
                                     (json-read)))))))))))
+
+(defun utunes-play ()
+  "Start playback, or set state to playing if no track queued."
+  (interactive)
+  (utunes-playback
+   '((playing . t))
+   (lambda (resp)
+     (let-alist resp
+       (cond
+        ((or (null .playlist) (null .index))
+         (user-error "State set to playing, but no track queued"))
+        (t
+         (message "Now playing from playlist %S at index %S (%Ss/%Ss)"
+                  .playlist .index (round .seek) (round .seek-end))))))))
+
+(defun utunes-pause ()
+  "Pause playback, or set state to paused if no track queued."
+  (interactive)
+  (utunes-playback
+   '((playing . nil))
+   (lambda (resp)
+     (let-alist resp
+       (cond
+        ((or (null .playlist) (null .index))
+         (user-error "State set to paused, but no track queued"))
+        (t
+         (message "Now paused in playlist %S at index %S (%Ss/%Ss)"
+                  .playlist .index (round .seek) (round .seek-end))))))))
 
 ;;;; Closing remarks
 
