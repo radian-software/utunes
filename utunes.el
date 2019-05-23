@@ -192,6 +192,7 @@ appropriate. An empty alist (nil) is fine as input."
                           callback (utunes--snake-to-kebab
                                     (json-read)))))))))))
 
+;;;###autoload
 (defun utunes-play ()
   "Start playback, or set state to playing if no track queued."
   (interactive)
@@ -206,6 +207,7 @@ appropriate. An empty alist (nil) is fine as input."
          (message "Now playing from playlist %S at index %S (%Ss/%Ss)"
                   .playlist .index (round .seek) (round .seek-end))))))))
 
+;;;###autoload
 (defun utunes-pause ()
   "Pause playback, or set state to paused if no track queued."
   (interactive)
@@ -220,6 +222,7 @@ appropriate. An empty alist (nil) is fine as input."
          (message "Now paused in playlist %S at index %S (%Ss/%Ss)"
                   .playlist .index (round .seek) (round .seek-end))))))))
 
+;;;###autoload
 (defun utunes-skip (&optional toggle-play-pause)
   "Skip to next song. With prefix argument, toggle play/pause state."
   (interactive "P")
@@ -237,6 +240,7 @@ appropriate. An empty alist (nil) is fine as input."
                          (if .playing "playing" "paused")
                          .playlist .index)))))))))
 
+;;;###autoload
 (defun utunes-prev (&optional toggle-play-pause)
   "Go back to previous song. With prefix argument, toggle play/pause state."
   (interactive "P")
