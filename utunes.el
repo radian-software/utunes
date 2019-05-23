@@ -237,6 +237,23 @@ appropriate. An empty alist (nil) is fine as input."
                          (if .playing "playing" "paused")
                          .playlist .index)))))))))
 
+(defun utunes-prev (&optional toggle-play-pause)
+  "Go back to previous song. With prefix argument, toggle play/pause state."
+  (interactive "P")
+  (utunes-playback
+   nil
+   (lambda (resp)
+     (let-alist resp
+       (if .index
+           (utunes-playback
+            `((index . ,(1- .index))
+              (playing . ,(xor .playing toggle-play-pause)))
+            (lambda (resp)
+              (let-alist resp
+                (message "Now %s in playlist %S at index %S"
+                         (if .playing "playing" "paused")
+                         .playlist .index)))))))))
+
 ;;;; Closing remarks
 
 (provide 'utunes)
