@@ -27,6 +27,7 @@
 ;; variable declarations in each section, run M-x occur with the
 ;; following query: ^;;;;* \|^(
 
+(require 'array)
 (require 'cl-lib)
 (require 'json)
 (require 'let-alist)
@@ -213,11 +214,28 @@ appropriate. An empty alist (nil) is fine as input."
    (lambda (resp)
      (let-alist resp
        (cond
-        ((or (null .playlist) (null .index))
+        ((null .seek)
          (user-error "State set to paused, but no track queued"))
         (t
          (message "Now paused in playlist %S at index %S (%Ss/%Ss)"
                   .playlist .index (round .seek) (round .seek-end))))))))
+
+(defun utunes-skip (&optional toggle-play-pause)
+  "Skip to next song. With prefix argument, toggle play/pause state."
+  (interactive "P")
+  (utunes-playback
+   nil
+   (lambda (resp)
+     (let-alist resp
+       (if .index
+           (utunes-playback
+            `((index . ,(1+ .index))
+              (playing . ,(xor .playing toggle-play-pause)))
+            (lambda (resp)
+              (let-alist resp
+                (message "Now %s in playlist %S at index %S"
+                         (if .playing "playing" "paused")
+                         .playlist .index)))))))))
 
 ;;;; Closing remarks
 
