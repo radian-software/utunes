@@ -223,7 +223,7 @@ appropriate. An empty alist (nil) is fine as input."
                   .playlist .index (round .seek) (round .seek-end))))))))
 
 ;;;###autoload
-(defun utunes-skip (&optional toggle-play-pause)
+(defun utunes-next (&optional toggle-play-pause)
   "Skip to next song. With prefix argument, toggle play/pause state."
   (interactive "P")
   (utunes-playback
