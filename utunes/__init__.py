@@ -185,20 +185,20 @@ class Library:
         for field, mode in reversed(sorts):
             if mode in "sr":
                 def key(song):
-                    return song[field]
+                    return song.get(field)
             elif mode in "SR":
                 def key(song):
                     try:
-                        return False, int(song[field])
-                    except ValueError:
-                        return True, song[field]
+                        return False, int(song.get(field))
+                    except (ValueError, TypeError):
+                        return True, song.get(field)
             elif mode == "x":
-                values = list({song[field] for song in songs})
+                values = list({song.get(field) for song in songs})
                 random.shuffle(values)
                 values = {value: idx for idx, value in enumerate(values)}
 
                 def key(song):
-                    return values[song[field]]
+                    return values[song.get(field)]
             else:
                 raise InternalError("unexpected mode: " + mode)
             reverse = mode in "rR"
