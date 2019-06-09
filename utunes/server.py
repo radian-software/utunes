@@ -290,6 +290,8 @@ class Server:
                     "unknown 'playing' value: {}".format(repr(playing))
                 )
         with self.lock:
+            if playing == "toggle":
+                playing = not self.player.is_playing()
             self.update(playlist, index, seek, playing)
             playlist = self.playlist if self.playlist is not UNSET else None
             index = self.index if self.index is not UNSET else None
