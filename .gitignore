@@ -1,3 +1,4 @@
+*.elc
 *.egg-info
 *.pyc
 pip-wheel-metadata

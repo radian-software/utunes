@@ -43,6 +43,10 @@
   "Name of the buffer used for diagnostic output from µTunes commands."
   :type 'string)
 
+(defcustom utunes-delimiter "|"
+  "String used as the column delimiter in tabular output from µTunes."
+  :type 'string)
+
 (defun utunes--get-log-buffer ()
   "Return the buffer for diagnostic output from µTunes commands.
 If the buffer does not exist, create it first."
@@ -68,11 +72,12 @@ that happened. See
       (let ((inhibit-read-only t))
         (save-excursion
           (goto-char (point-max))
-          (insert "[" (utunes--capitalize (string-trim event)) "]\n")))
-      (if (= 0 (process-exit-status proc))
-          (when utunes--last-callback
-            (funcall utunes--last-callback))
-        (message "µTunes backend command failed")
+          (insert "[" (utunes--capitalize (string-trim event)) "]\n"))))
+    (if (= 0 (process-exit-status proc))
+        (when utunes--last-callback
+          (funcall utunes--last-callback))
+      (message "µTunes backend command failed")
+      (with-current-buffer (utunes--get-log-buffer)
         (pop-to-buffer (current-buffer))
         (goto-char (point-max))))
     (setq utunes--current-process nil)))
@@ -158,17 +163,130 @@ Return a new alist, without modifying the original."
               "_" "-" (symbol-name key))))
    alist))
 
-(defun utunes-playback (input callback)
-  "Invoke 'utunes playback' with the given INPUT alist.
-The alist is turned into JSON and fed to µTunes on stdin. The
-resulting JSON on stdout is decoded and turned back into an
-alist. Then CALLBACK is invoked with the alist as its single
-argument.
+(cl-defun utunes-read (format &key filters sorts illegal-chars callback)
+  "Invoke 'utunes read'. All keyword arguments are optional.
+Write output into the buffer that is current when this function
+is called, at point.
+
+FORMAT is a string in Python str.format syntax.
+
+FILTERS (defaults to nil) is an alist mapping field
+names (strings) to Python regexps (strings). It may contain more
+than one link with the same field name.
+
+SORTS (defaults to nil) is an alist mapping field names (strings)
+to sort qualifiers (symbols, one of `alpha', `alpha-reverse',
+`random', `numeric', or `numeric-reverse'). The alist may contain
+more than one link with the same field name (although the utility
+of this is dubious), and its order is significant.
+
+ILLEGAL-CHARS, if given, is a string.
+
+If CALLBACK is given, invoke it with no arguments once the
+command returns (if it succeeds). Do not change which buffer is
+current."
+  (utunes-command
+   :args `("read"
+           ,@(mapcan
+              (lambda (filter)
+                `("-f" ,(format "%s=%s" (car filter) (cdr filter))))
+              filters)
+           ,@(mapcan
+              (lambda (sort)
+                `("-s"
+                  ,(format
+                    "%s:%s"
+                    (pcase (cdr sort)
+                      (`alpha "s")
+                      (`alpha-reverse "r")
+                      (`random "x")
+                      (`numeric "S")
+                      (`numeric-reverse "R"))
+                    (car sort))))
+              sorts)
+           "-i" ,(or illegal-chars "")
+           "--" ,format)
+   :stdout (current-buffer)
+   :callback callback))
+
+(cl-defun utunes-read-to-table (fields &key filters sorts callback)
+  "Read given FIELDS in tabular format into the current buffer.
+All keyword arguments are optional.
+
+FIELDS is a list of strings. FILTERS, SORTS, and CALLBACK are as
+described in `utunes-read' (which see).
+
+The inserted table has no extraneous spacing."
+  (utunes-read
+   (concat
+    (mapconcat
+     (lambda (field)
+       (format "{%s}" field))
+     fields
+     utunes-delimiter)
+    "\n")
+   :filters filters
+   :sorts sorts
+   :illegal-chars utunes-delimiter
+   :callback callback))
+
+(cl-defun utunes-read-to-list (fields &key filters sorts callback)
+  "Read given FIELDS into a list of alists.
+All keyword arguments are optional.
+
+FIELDS is a list of strings. FILTERS and SORTS are as described
+in `utunes-read' (which see). CALLBACK is invoked with a list of
+alists once the command returns, provided that it succeeds. Each
+element of the list represents one returned song. The keys are
+field names (strings), and the values are the corresponding field
+values (strings)."
+  (with-current-buffer utunes--scratch-buffer
+    (erase-buffer)
+    (utunes-read-to-table
+     fields
+     :filters filters
+     :sorts sorts
+     :callback
+     (lambda ()
+       (when callback
+         (funcall
+          callback
+          (with-current-buffer utunes--scratch-buffer
+            (mapcar
+             (lambda (line)
+               (cl-mapcar
+                #'cons
+                fields
+                (split-string line (regexp-quote utunes-delimiter))))
+             (split-string (buffer-string) "\n" 'omit-nulls)))))))))
+
+(cl-defun utunes-write (regex &key playlist callback)
+  "Invoke 'utunes write'. Read input from the current buffer.
+All keyword arguments are optional.
+
+The entire buffer is sent on stdin. To prevent this, use
+narrowing.
+
+REGEX is a Python-style regexp, a string. PLAYLIST, if given, is
+a string. CALLBACK, if given, is invoked with no arguments once
+the command returns (if it succeeds)."
+  (utunes-command
+   :args `("write" "--" ,regex ,@(when playlist `(,playlist)))
+   :stdin (current-buffer)
+   :callback callback))
+
+(cl-defun utunes-playback (&key input callback)
+  "Invoke 'utunes playback'. All arguments are optional.
+
+INPUT (defaults to nil) is an alist which is turned into JSON and
+fed to µTunes on stdin. The resulting JSON on stdout is decoded
+and turned back into an alist. Then CALLBACK, if non-nil, is
+invoked with the alist as its single argument.
 
 The keys of the input and output alists are symbols (`playlist',
 `seek-end', etc.), and the values are either strings,
 booleans (nil or t), integers, or floating-point numbers, as
-appropriate. An empty alist (nil) is fine as input."
+appropriate."
   (let* ((json-false nil)
          (json-null :json-null))
     (with-temp-buffer
@@ -186,77 +304,119 @@ appropriate. An empty alist (nil) is fine as input."
            :stdin stdin
            :stdout utunes--scratch-buffer
            :callback (lambda ()
-                       (with-current-buffer utunes--scratch-buffer
-                         (goto-char (point-min))
+                       (when callback
                          (funcall
-                          callback (utunes--snake-to-kebab
-                                    (json-read)))))))))))
+                          callback
+                          (with-current-buffer utunes--scratch-buffer
+                            (goto-char (point-min))
+                            (utunes--snake-to-kebab
+                             (let ((json-false nil))
+                               (json-read)))))))))))))
+
+(defun utunes--format-time (seconds)
+  "Format a number of SECONDS as a human-readable string.
+SECONDS may be integer or floating-point. For example:
+
+  (utunes--format-time 75.1)
+
+returns:
+
+  \"1m15s\""
+  (if (>= seconds 1)
+      (format-seconds "%yy%dd%hh%mm%ss%z" seconds)
+    "0s"))
 
 ;;;###autoload
-(defun utunes-play ()
-  "Start playback, or set state to playing if no track queued."
+(defun utunes-status (&optional state)
+  "Report the current playback status in the echo area.
+This function is asynchronous.
+
+If STATE is given, use it instead of invoking `utunes-playback'
+to get the playback state."
+  (interactive)
+  (let ((callback
+         (lambda (resp)
+           (let-alist resp
+             (cond
+              ((null .seek)
+               (message "No track selected"))
+              ((or (null .playlist) (null .index) (null .seek-end))
+               (error "utunes-status: null playlist, index, or seek-end"))
+              (t
+               (utunes-read-to-list
+                '("album" "song" "album_artist")
+                :filters `(("playlist" . ,(format "%s:%d" .playlist .index)))
+                :callback
+                (lambda (songs)
+                  (unless (= (length songs) 1)
+                    (error "utunes-status: songs list is not of length 1" songs))
+                  (let ((data (car songs)))
+                    (utunes-read-to-list
+                     '("id")
+                     :filters `(("playlist" . ,(format "%s:[^:]+" .playlist)))
+                     :callback
+                     (lambda (playlist-songs)
+                       (message
+                        "%s [%s/%s] %s - %s (%s) | %d/%d from %s"
+                        (if .playing "PLAYING" "PAUSED")
+                        (utunes--format-time .seek)
+                        (utunes--format-time .seek-end)
+                        (alist-get "song" data nil nil #'equal)
+                        (alist-get "album" data nil nil #'equal)
+                        (alist-get "album_artist" data nil nil #'equal)
+                        .index
+                        (length playlist-songs)
+                        .playlist))))))))))))
+    (if state
+        (funcall callback state)
+      (utunes-playback :callback callback))))
+
+;;;###autoload
+(defun utunes-toggle ()
+  "Toggle playback state between playing and paused."
   (interactive)
   (utunes-playback
-   '((playing . t))
-   (lambda (resp)
-     (let-alist resp
-       (cond
-        ((or (null .playlist) (null .index))
-         (user-error "State set to playing, but no track queued"))
-        (t
-         (message "Now playing from playlist %S at index %S (%Ss/%Ss)"
-                  .playlist .index (round .seek) (round .seek-end))))))))
+   :input
+   `((playing . "toggle"))
+   :callback #'utunes-status))
 
 ;;;###autoload
-(defun utunes-pause ()
-  "Pause playback, or set state to paused if no track queued."
+(defun utunes-rewind ()
+  "Seek to beginning of current song."
   (interactive)
   (utunes-playback
-   '((playing . nil))
-   (lambda (resp)
-     (let-alist resp
-       (cond
-        ((null .seek)
-         (user-error "State set to paused, but no track queued"))
-        (t
-         (message "Now paused in playlist %S at index %S (%Ss/%Ss)"
-                  .playlist .index (round .seek) (round .seek-end))))))))
-
-;;;###autoload
-(defun utunes-next (&optional toggle-play-pause)
-  "Skip to next song. With prefix argument, toggle play/pause state."
-  (interactive "P")
-  (utunes-playback
-   nil
-   (lambda (resp)
-     (let-alist resp
-       (if .index
-           (utunes-playback
-            `((index . ,(1+ .index))
-              (playing . ,(xor .playing toggle-play-pause)))
-            (lambda (resp)
-              (let-alist resp
-                (message "Now %s in playlist %S at index %S"
-                         (if .playing "playing" "paused")
-                         .playlist .index)))))))))
+   :input '((seek . 0))
+   :callback #'utunes-status))
 
 ;;;###autoload
 (defun utunes-prev (&optional toggle-play-pause)
   "Go back to previous song. With prefix argument, toggle play/pause state."
   (interactive "P")
   (utunes-playback
-   nil
+   :callback
    (lambda (resp)
      (let-alist resp
        (if .index
            (utunes-playback
+            :input
             `((index . ,(1- .index))
               (playing . ,(xor .playing toggle-play-pause)))
-            (lambda (resp)
-              (let-alist resp
-                (message "Now %s in playlist %S at index %S"
-                         (if .playing "playing" "paused")
-                         .playlist .index)))))))))
+            :callback #'utunes-status))))))
+
+;;;###autoload
+(defun utunes-next (&optional toggle-play-pause)
+  "Skip to next song. With prefix argument, toggle play/pause state."
+  (interactive "P")
+  (utunes-playback
+   :callback
+   (lambda (resp)
+     (let-alist resp
+       (if .index
+           (utunes-playback
+            :input
+            `((index . ,(1+ .index))
+              (playing . ,(xor .playing toggle-play-pause)))
+            :callback #'utunes-status))))))
 
 ;;;; Closing remarks
 
