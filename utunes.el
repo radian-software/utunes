@@ -427,4 +427,4 @@ to get the playback state."
 ;; outline-regexp: ";;;;* "
 ;; End:
 
-;;; el-patch.el ends here
+;;; utunes.el ends here
