@@ -1,4 +1,4 @@
-;;; utunes.el --- Microscopic music library manager. -*- lexical-binding: t -*-
+;;; utunes.el --- Microscopic music library manager -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Radon Rosborough
 
