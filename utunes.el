@@ -366,7 +366,7 @@ to get the playback state."
                         (alist-get "song" data nil nil #'equal)
                         (alist-get "album" data nil nil #'equal)
                         (alist-get "album_artist" data nil nil #'equal)
-                        .index
+                        (1+ .index)
                         (length playlist-songs)
                         .playlist))))))))))))
     (if state
