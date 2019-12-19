@@ -118,9 +118,7 @@ class Library:
     def filters_to_function(filters):
         def check_song(song):
             for field, regex in filters:
-                if field not in song:
-                    return False
-                if not re.fullmatch(regex, song[field]):
+                if not re.fullmatch(regex, song.get(field, "")):
                     return False
             return True
 
