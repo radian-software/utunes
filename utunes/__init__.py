@@ -82,7 +82,6 @@ class Paths:
 
 
 class Library:
-
     @staticmethod
     def find_library_root():
         env_root = os.environ.get("UTUNES_LIBRARY")
@@ -92,8 +91,9 @@ class Library:
         for directory in (cwd, *cwd.parents):
             if is_path_occupied(directory / Paths.json_basename):
                 return directory
-        raise UserError("could not find {}, and UTUNES_LIBRARY not set"
-                        .format(Paths.json_basename))
+        raise UserError(
+            "could not find {}, and UTUNES_LIBRARY not set".format(Paths.json_basename)
+        )
 
     @staticmethod
     def prettify_path(path):
@@ -123,6 +123,7 @@ class Library:
                 if not re.fullmatch(regex, song[field]):
                     return False
             return True
+
         return check_song
 
     def get_json_filename(self):
@@ -146,9 +147,7 @@ class Library:
                 with open(json_fname) as f:
                     self.data = json.load(f)
             except (OSError, json.JSONDecodeError) as e:
-                raise UserError(
-                    "error reading library file: {}".format(e)
-                )
+                raise UserError("error reading library file: {}".format(e))
         if self.data is UNSET:
             self.data = {
                 "version": 1,
@@ -184,14 +183,18 @@ class Library:
             songs = list(filter(check_song, self.data["songs"].values()))
         for field, mode in reversed(sorts):
             if mode in "sr":
+
                 def key(song):
                     return song.get(field)
+
             elif mode in "SR":
+
                 def key(song):
                     try:
                         return False, int(song.get(field))
                     except (ValueError, TypeError):
                         return True, song.get(field)
+
             elif mode == "x":
                 values = list({song.get(field) for song in songs})
                 random.shuffle(values)
@@ -199,6 +202,7 @@ class Library:
 
                 def key(song):
                     return values[song.get(field)]
+
             else:
                 raise InternalError("unexpected mode: " + mode)
             reverse = mode in "rR"
@@ -220,8 +224,9 @@ class Library:
                         song.update(key=value)
                     else:
                         if key == "filename":
-                            raise UserError("cannot unset filename: id {}"
-                                            .format(repr(song_id)))
+                            raise UserError(
+                                "cannot unset filename: id {}".format(repr(song_id))
+                            )
                         song.pop(key)
             else:
                 song_id = get_nonce(k=8, s=songs, alphabet="0123456789abcdef")
@@ -265,8 +270,9 @@ class Library:
             new_filename.parent.mkdir(parents=True, exist_ok=True)
         if renames:
             log(
-                "renaming {} file{}"
-                .format(len(renames), "s" if len(renames) != 1 else "")
+                "renaming {} file{}".format(
+                    len(renames), "s" if len(renames) != 1 else ""
+                )
             )
         for old_filename, new_filename in renames.items():
             old_filename.rename(new_filename)
@@ -294,8 +300,7 @@ def subcmd_read(filters, sorts, illegal_chars, format_str):
                 for char in illegal_chars:
                     if char in song[field]:
                         raise UserError(
-                            "song contains {} in field {}: {}"
-                            .format(
+                            "song contains {} in field {}: {}".format(
                                 repr(char), repr(field), repr(song["filename"])
                             )
                         )
@@ -317,14 +322,11 @@ def subcmd_write(regex, playlist):
             if len(input_str) > 40:
                 input_str = input_str[:40] + " (...)"
             raise UserError(
-                "regex does not match at location {}: {}".format(
-                    location, input_str
-                )
+                "regex does not match at location {}: {}".format(location, input_str)
             )
         if len(match.groupdict()) < len(match.groups()):
-            raise UserError("regex contains unnamed groups: {}"
-                            .format(regex))
-        input_str = input_str[match.end():]
+            raise UserError("regex contains unnamed groups: {}".format(regex))
+        input_str = input_str[match.end() :]
         location += match.end()
         partial_songs.append(match.groupdict())
     lib.write(partial_songs=partial_songs, playlist=playlist)
@@ -344,13 +346,9 @@ def call_server(socket_fname, msg):
             conn.send(msg)
             resp = conn.recv()
         except ValueError as e:
-            raise InternalError(
-                "failed to send to playback server: {}".format(e)
-            )
+            raise InternalError("failed to send to playback server: {}".format(e))
         except EOFError:
-            raise InternalError(
-                "did not receive response from playback server"
-            )
+            raise InternalError("did not receive response from playback server")
     error = resp.pop("error")
     async_errors = resp.pop("async_errors")
     for e in async_errors:
@@ -394,11 +392,16 @@ def subcmd_playback():
                 f.write("---\nStarting playback server...\n")
                 env = dict(os.environ)
                 env["PYTHONUNBUFFERED"] = "1"
-                subprocess.Popen(["nohup", "python", "-m", "utunes.server"],
-                                 preexec_fn=os.setpgrp, cwd=lib.library_root,
-                                 stdout=f, stderr=f, env=env)
+                subprocess.Popen(
+                    ["nohup", "python", "-m", "utunes.server"],
+                    preexec_fn=os.setpgrp,
+                    cwd=lib.library_root,
+                    stdout=f,
+                    stderr=f,
+                    env=env,
+                )
         except OSError as e:
-            raise InternalError("failed to spawn playback server: {}" .format(e))
+            raise InternalError("failed to spawn playback server: {}".format(e))
         # Wait up to one second for the server to start.
         live = False
         for i in range(20):
@@ -420,15 +423,18 @@ def subcmd_playback():
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="utunes",
-        description="Microscopic music library manager and music player"
+        prog="utunes", description="Microscopic music library manager and music player"
     )
 
     parser.add_argument(
         "--version", action="version", version="µTunes pre-release version"
     )
     parser.add_argument(
-        "-C", "--cd", dest="cd_dir", default=UNSET, metavar="DIR",
+        "-C",
+        "--cd",
+        dest="cd_dir",
+        default=UNSET,
+        metavar="DIR",
         help="change to given directory before running",
     )
 
@@ -438,35 +444,49 @@ def main():
         "read", help="list media files from library to stdout"
     )
     parser_read.add_argument(
-        "format", metavar="FORMAT",
-        help="Python str.format string for listing output"
+        "format", metavar="FORMAT", help="Python str.format string for listing output"
     )
-    parser_read.add_argument("-f", "--filter", dest="filters", default=[],
-                             action="append", metavar="FIELD=REGEX",
-                             help="filter songs by the given field")
-    parser_read.add_argument("-s", "--sort", dest="sorts", default=[],
-                             action="append", metavar="Q:FIELD",
-                             help="sort songs by the given field (Q is one of srxSR)")
     parser_read.add_argument(
-        "-i", "--illegal-chars", default="", metavar="CHARS",
-        help="report an error if song fields contain the given characters"
+        "-f",
+        "--filter",
+        dest="filters",
+        default=[],
+        action="append",
+        metavar="FIELD=REGEX",
+        help="filter songs by the given field",
+    )
+    parser_read.add_argument(
+        "-s",
+        "--sort",
+        dest="sorts",
+        default=[],
+        action="append",
+        metavar="Q:FIELD",
+        help="sort songs by the given field (Q is one of srxSR)",
+    )
+    parser_read.add_argument(
+        "-i",
+        "--illegal-chars",
+        default="",
+        metavar="CHARS",
+        help="report an error if song fields contain the given characters",
     )
 
     parser_write = subparsers.add_parser(
         "write", help="update song metadata and playlists from stdin"
     )
     parser_write.add_argument(
-        "regex", metavar="REGEX",
-        help="Python regex for parsing input"
+        "regex", metavar="REGEX", help="Python regex for parsing input"
     )
     parser_write.add_argument(
-        "playlist", nargs="?", default=UNSET,
-        metavar="PLAYLIST", help="name of playlist to update"
+        "playlist",
+        nargs="?",
+        default=UNSET,
+        metavar="PLAYLIST",
+        help="name of playlist to update",
     )
 
-    subparsers.add_parser(
-        "playback", help="read and write music playback server state"
-    )
+    subparsers.add_parser("playback", help="read and write music playback server state")
 
     args = parser.parse_args()
 
@@ -475,8 +495,9 @@ def main():
             try:
                 os.chdir(args.cd_dir)
             except OSError as e:
-                raise UserError("couldn't change directory to {}: {}"
-                                .format(repr(args.cd_dir), e))
+                raise UserError(
+                    "couldn't change directory to {}: {}".format(repr(args.cd_dir), e)
+                )
 
         if args.subcommand == "read":
             filters = []
@@ -490,11 +511,14 @@ def main():
             for sort_str in args.sorts:
                 match = re.fullmatch(r"([srxSR]):(.*)", sort_str)
                 if not match:
-                    parser_read.error("malformed sort string: {}".format(repr(sort_str)))
+                    parser_read.error(
+                        "malformed sort string: {}".format(repr(sort_str))
+                    )
                 qualifier, field = match.groups()
                 sorts.append((field, qualifier))
             subcmd_read(
-                filters=filters, sorts=sorts,
+                filters=filters,
+                sorts=sorts,
                 illegal_chars=args.illegal_chars,
                 format_str=args.format,
             )
