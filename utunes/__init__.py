@@ -104,7 +104,7 @@ class Library:
         album = Library.prettify_path(song.get("album", "untitled"))
         disc = song.get("disc", "")
         if disc:
-            disc = Library.prettify_path(disc.zfill(2)) + "-"
+            disc = Library.prettify_path(disc.zfill(3)) + "-"
         track = song.get("track", "")
         if track:
             track = Library.prettify_path(track.zfill(3)) + "-"
