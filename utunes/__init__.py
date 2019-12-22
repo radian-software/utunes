@@ -183,7 +183,7 @@ class Library:
             if mode in "sr":
 
                 def key(song):
-                    return song.get(field)
+                    return song.get(field, "")
 
             elif mode in "SR":
 
@@ -225,7 +225,10 @@ class Library:
                             raise UserError(
                                 "cannot unset filename: id {}".format(repr(song_id))
                             )
-                        song.pop(key)
+                        try:
+                            song.pop(key)
+                        except KeyError:
+                            pass
             else:
                 song_id = get_nonce(k=8, s=songs, alphabet="0123456789abcdef")
                 song = {"id": song_id}
