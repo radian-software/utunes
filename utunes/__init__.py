@@ -469,6 +469,12 @@ def main():
         metavar="CHARS",
         help="report an error if song fields contain the given characters",
     )
+    parser_read.add_argument(
+        "-n",
+        "--no-newline",
+        action="store_true",
+        help="don't add a newline to the format string",
+    )
 
     parser_write = subparsers.add_parser(
         "write", help="update song metadata and playlists from stdin"
@@ -482,6 +488,12 @@ def main():
         default=UNSET,
         metavar="PLAYLIST",
         help="name of playlist to update",
+    )
+    parser_write.add_argument(
+        "-n",
+        "--no-newline",
+        action="store_true",
+        help="don't add a newline to the regex",
     )
 
     subparsers.add_parser("playback", help="read and write music playback server state")
@@ -514,15 +526,21 @@ def main():
                     )
                 qualifier, field = match.groups()
                 sorts.append((field, qualifier))
+            format_str = args.format
+            if not args.no_newline:
+                format_str += "\n"
             subcmd_read(
                 filters=filters,
                 sorts=sorts,
                 illegal_chars=args.illegal_chars,
-                format_str=args.format,
+                format_str=format_str,
             )
         elif args.subcommand == "write":
+            regex = args.regex
+            if not args.no_newline:
+                regex += r"\n"
             try:
-                regex = re.compile(args.regex)
+                regex = re.compile(regex)
             except re.error as e:
                 parser_write.error("invalid regex: {}".format(e))
             subcmd_write(regex=regex, playlist=args.playlist)
