@@ -219,7 +219,7 @@ class Library:
                 song = songs[song_id]
                 for key, value in partial_song.items():
                     if value:
-                        song.update(key=value)
+                        song[key] = value
                     else:
                         if key == "filename":
                             raise UserError(
