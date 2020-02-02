@@ -402,7 +402,7 @@ to get the playback state."
            (utunes-playback
             :input
             `((index . ,(1- .index))
-              (playing . ,(xor .playing toggle-play-pause)))
+              (playing . ,(xor .playing (when toggle-play-pause t))))
             :callback #'utunes-status))))))
 
 ;;;###autoload
@@ -417,7 +417,7 @@ to get the playback state."
            (utunes-playback
             :input
             `((index . ,(1+ .index))
-              (playing . ,(xor .playing toggle-play-pause)))
+              (playing . ,(xor .playing (when toggle-play-pause t))))
             :callback #'utunes-status))))))
 
 ;;;; Closing remarks
