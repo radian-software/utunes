@@ -377,8 +377,8 @@ def kill_server():
 
 
 def subcmd_playback():
-    if not shutil.which("mplayer"):
-        raise UserError("command not found: mplayer")
+    if not shutil.which("mpv"):
+        raise UserError("command not found: mpv")
     lib = Library()
     msg = read_stdin()
     try:
