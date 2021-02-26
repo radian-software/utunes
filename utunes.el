@@ -426,7 +426,6 @@ to get the playback state."
 
 ;; Local Variables:
 ;; indent-tabs-mode: nil
-;; outline-regexp: ";;;;* "
 ;; End:
 
 ;;; utunes.el ends here
