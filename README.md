@@ -237,13 +237,13 @@ Playback requires installing [MPV].
 The backend may be installed as a standard Python package from this
 GitHub repository. It is recommended to use [pipx]:
 
-    $ pipx install utunes --spec git+https://github.com/raxod502/utunes.git
+    $ pipx install utunes --spec git+https://github.com/radian-software/utunes.git
 
 The frontend may be installed as a standard Emacs Lisp package from
 this GitHub repository. It is recommended to use
 [`straight.el`][straight.el]:
 
-    (straight-use-package '(utunes :host github :repo "raxod502/utunes"))
+    (straight-use-package '(utunes :host github :repo "radian-software/utunes"))
 
 To make sure the packages remain in sync, I recommend installing the
 Emacs package first and then running:

@@ -1,10 +1,10 @@
 ;;; utunes.el --- Microscopic music library manager -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Radon Rosborough
+;; Copyright (C) 2019-2022 Radian LLC and contributors
 
-;; Author: Radon Rosborough <radon.neon@gmail.com>
+;; Author: Radian LLC <contact+utunes@radian.codes>
 ;; Created: 30 Apr 2019
-;; Homepage: https://github.com/raxod502/utunes
+;; Homepage: https://github.com/radian-software/utunes
 ;; Keywords: applications
 ;; Package-Requires: ((emacs "26"))
 ;; Version: 0
@@ -17,7 +17,7 @@
 ;; maximize flexibility while minimizing implementation complexity and
 ;; number of abstractions.
 
-;; Please see <https://github.com/raxod502/utunes> for more
+;; Please see <https://github.com/radian-software/utunes> for more
 ;; information.
 
 ;;; Code:

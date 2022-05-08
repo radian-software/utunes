@@ -2,7 +2,7 @@
 name = "utunes"
 version = "0"
 description = "Microscopic music library manager and music player"
-authors = ["Radon Rosborough <radon.neon@gmail.com>"]
+authors = ["Radian LLC <contact+utunes@radian.codes>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
