@@ -1,76 +1,119 @@
 [[package]]
-category = "main"
-description = "Atomic file writes."
 name = "atomicwrites"
+version = "1.3.0"
+description = "Atomic file writes."
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-version = "1.3.0"
 
 [[package]]
-category = "main"
-description = "read and write audio tags for many formats"
 name = "mutagen"
+version = "1.42.0"
+description = "read and write audio tags for many formats"
+category = "main"
 optional = false
 python-versions = "*"
-version = "1.42.0"
 
 [[package]]
-category = "main"
-description = "Wraps the portalocker recipe for easy usage"
 name = "portalocker"
+version = "1.4.0"
+description = "Wraps the portalocker recipe for easy usage"
+category = "main"
 optional = false
 python-versions = "*"
-version = "1.4.0"
 
 [package.dependencies]
-pypiwin32 = "*"
+pypiwin32 = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+docs = ["sphinx (>=1.7.1)"]
+tests = ["flake8 (>=3.5.0)", "pytest (>=3.4.0)", "pytest-cache (>=1.0)", "pytest-cov (>=2.5.1)", "pytest-flakes (>=2.0.0)", "pytest-pep8 (>=1.0.6)", "sphinx (>=1.7.1)"]
 
 [[package]]
-category = "main"
-description = "Cross-platform lib for process and system monitoring in Python."
 name = "psutil"
+version = "5.6.6"
+description = "Cross-platform lib for process and system monitoring in Python."
+category = "main"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-version = "5.6.2"
+
+[package.extras]
+enum = ["enum34"]
 
 [[package]]
-category = "main"
-description = ""
-marker = "platform_system == \"Windows\""
 name = "pypiwin32"
+version = "223"
+description = ""
+category = "main"
 optional = false
 python-versions = "*"
-version = "223"
 
 [package.dependencies]
 pywin32 = ">=223"
 
 [[package]]
-category = "main"
-description = "A python interface to the mpv media player"
 name = "python-mpv"
+version = "0.3.9"
+description = "A python interface to the mpv media player"
+category = "main"
 optional = false
 python-versions = "*"
-version = "0.3.9"
+
+[package.extras]
+screenshot_raw = ["pillow"]
 
 [[package]]
-category = "main"
-description = "Python for Window Extensions"
-marker = "platform_system == \"Windows\""
 name = "pywin32"
+version = "224"
+description = "Python for Window Extensions"
+category = "main"
 optional = false
 python-versions = "*"
-version = "224"
 
 [metadata]
-content-hash = "70e8d0ff548ebf60debf7922d5685c7f4bc4c503ef798eb9e2df05c82124391e"
+lock-version = "1.1"
 python-versions = "^3.7"
+content-hash = "70e8d0ff548ebf60debf7922d5685c7f4bc4c503ef798eb9e2df05c82124391e"
 
-[metadata.hashes]
-atomicwrites = ["03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4", "75a9445bac02d8d058d5e1fe689654ba5a6556a1dfd8ce6ec55a0ed79866cfa6"]
-mutagen = ["bb61e2456f59a9a4a259fbc08def6d01ba45a42da8eeaa97d00633b0ec5de71c"]
-portalocker = ["3fb35648a9e03f267e54c6186513abbd1cdd321c305502545a3550eea8b2923f", "d98cdcdbd8c590ee4c93fb4149b2e76030ea6c36d6fdfec122e6656ebf90086f"]
-psutil = ["206eb909aa8878101d0eca07f4b31889c748f34ed6820a12eb3168c7aa17478e", "649f7ffc02114dced8fbd08afcd021af75f5f5b2311bc0e69e53e8f100fe296f", "6ebf2b9c996bb8c7198b385bade468ac8068ad8b78c54a58ff288cd5f61992c7", "753c5988edc07da00dafd6d3d279d41f98c62cd4d3a548c4d05741a023b0c2e7", "76fb0956d6d50e68e3f22e7cc983acf4e243dc0fcc32fd693d398cb21c928802", "828e1c3ca6756c54ac00f1427fdac8b12e21b8a068c3bb9b631a1734cada25ed", "a4c62319ec6bf2b3570487dd72d471307ae5495ce3802c1be81b8a22e438b4bc", "acba1df9da3983ec3c9c963adaaf530fcb4be0cd400a8294f1ecc2db56499ddd", "ef342cb7d9b60e6100364f50c57fa3a77d02ff8665d5b956746ac01901247ac4"]
-pypiwin32 = ["67adf399debc1d5d14dffc1ab5acacb800da569754fafdc576b2a039485aa775", "71be40c1fbd28594214ecaecb58e7aa8b708eabfa0125c8a109ebd51edbd776a"]
-python-mpv = ["13dbbbcbd996afda37163cae6d4cbad0ef510188e467b16bc50aadc2a2cbdd52"]
-pywin32 = ["22e218832a54ed206452c8f3ca9eff07ef327f8e597569a4c2828be5eaa09a77", "32b37abafbfeddb0fe718008d6aada5a71efa2874f068bee1f9e703983dcc49a", "35451edb44162d2f603b5b18bd427bc88fcbc74849eaa7a7e7cfe0f507e5c0c8", "4eda2e1e50faa706ff8226195b84fbcbd542b08c842a9b15e303589f85bfb41c", "5f265d72588806e134c8e1ede8561739071626ea4cc25c12d526aa7b82416ae5", "6852ceac5fdd7a146b570655c37d9eacd520ed1eaeec051ff41c6fc94243d8bf", "6dbc4219fe45ece6a0cc6baafe0105604fdee551b5e876dc475d3955b77190ec", "9bd07746ce7f2198021a9fa187fa80df7b221ec5e4c234ab6f00ea355a3baf99"]
+[metadata.files]
+atomicwrites = [
+    {file = "atomicwrites-1.3.0-py2.py3-none-any.whl", hash = "sha256:03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4"},
+    {file = "atomicwrites-1.3.0.tar.gz", hash = "sha256:75a9445bac02d8d058d5e1fe689654ba5a6556a1dfd8ce6ec55a0ed79866cfa6"},
+]
+mutagen = [
+    {file = "mutagen-1.42.0.tar.gz", hash = "sha256:bb61e2456f59a9a4a259fbc08def6d01ba45a42da8eeaa97d00633b0ec5de71c"},
+]
+portalocker = [
+    {file = "portalocker-1.4.0-py2.py3-none-any.whl", hash = "sha256:d98cdcdbd8c590ee4c93fb4149b2e76030ea6c36d6fdfec122e6656ebf90086f"},
+    {file = "portalocker-1.4.0.tar.gz", hash = "sha256:3fb35648a9e03f267e54c6186513abbd1cdd321c305502545a3550eea8b2923f"},
+]
+psutil = [
+    {file = "psutil-5.6.6-cp27-none-win32.whl", hash = "sha256:06660136ab88762309775fd47290d7da14094422d915f0466e0adf8e4b22214e"},
+    {file = "psutil-5.6.6-cp27-none-win_amd64.whl", hash = "sha256:f21a7bb4b207e4e7c60b3c40ffa89d790997619f04bbecec9db8e3696122bc78"},
+    {file = "psutil-5.6.6-cp35-cp35m-win32.whl", hash = "sha256:5e8dbf31871b0072bcba8d1f2861c0ec6c84c78f13c723bb6e981bce51b58f12"},
+    {file = "psutil-5.6.6-cp35-cp35m-win_amd64.whl", hash = "sha256:724390895cff80add7a1c4e7e0a04d9c94f3ee61423a2dcafd83784fabbd1ee9"},
+    {file = "psutil-5.6.6-cp36-cp36m-win32.whl", hash = "sha256:6d81b9714791ef9a3a00b2ca846ee547fc5e53d259e2a6258c3d2054928039ff"},
+    {file = "psutil-5.6.6-cp36-cp36m-win_amd64.whl", hash = "sha256:3004361c6b93dbad71330d992c1ae409cb8314a6041a0b67507cc882357f583e"},
+    {file = "psutil-5.6.6-cp37-cp37m-win32.whl", hash = "sha256:0fc7a5619b47f74331add476fbc6022d7ca801c22865c7069ec0867920858963"},
+    {file = "psutil-5.6.6-cp37-cp37m-win_amd64.whl", hash = "sha256:f60042bef7dc50a78c06334ca8e25580455948ba2fa98f240d034a4fed9141a5"},
+    {file = "psutil-5.6.6-cp38-cp38-win32.whl", hash = "sha256:0c11adde31011a286197630ba2671e34651f004cc418d30ae06d2033a43c9e20"},
+    {file = "psutil-5.6.6-cp38-cp38-win_amd64.whl", hash = "sha256:0c211eec4185725847cb6c28409646c7cfa56fdb531014b35f97b5dc7fe04ff9"},
+    {file = "psutil-5.6.6.tar.gz", hash = "sha256:ad21281f7bd6c57578dd53913d2d44218e9e29fd25128d10ff7819ef16fa46e7"},
+]
+pypiwin32 = [
+    {file = "pypiwin32-223-py3-none-any.whl", hash = "sha256:67adf399debc1d5d14dffc1ab5acacb800da569754fafdc576b2a039485aa775"},
+    {file = "pypiwin32-223.tar.gz", hash = "sha256:71be40c1fbd28594214ecaecb58e7aa8b708eabfa0125c8a109ebd51edbd776a"},
+]
+python-mpv = [
+    {file = "python-mpv-0.3.9.tar.gz", hash = "sha256:13dbbbcbd996afda37163cae6d4cbad0ef510188e467b16bc50aadc2a2cbdd52"},
+]
+pywin32 = [
+    {file = "pywin32-224-cp27-cp27m-win32.whl", hash = "sha256:6852ceac5fdd7a146b570655c37d9eacd520ed1eaeec051ff41c6fc94243d8bf"},
+    {file = "pywin32-224-cp27-cp27m-win_amd64.whl", hash = "sha256:6dbc4219fe45ece6a0cc6baafe0105604fdee551b5e876dc475d3955b77190ec"},
+    {file = "pywin32-224-cp35-cp35m-win32.whl", hash = "sha256:9bd07746ce7f2198021a9fa187fa80df7b221ec5e4c234ab6f00ea355a3baf99"},
+    {file = "pywin32-224-cp35-cp35m-win_amd64.whl", hash = "sha256:5f265d72588806e134c8e1ede8561739071626ea4cc25c12d526aa7b82416ae5"},
+    {file = "pywin32-224-cp36-cp36m-win32.whl", hash = "sha256:32b37abafbfeddb0fe718008d6aada5a71efa2874f068bee1f9e703983dcc49a"},
+    {file = "pywin32-224-cp36-cp36m-win_amd64.whl", hash = "sha256:35451edb44162d2f603b5b18bd427bc88fcbc74849eaa7a7e7cfe0f507e5c0c8"},
+    {file = "pywin32-224-cp37-cp37m-win32.whl", hash = "sha256:22e218832a54ed206452c8f3ca9eff07ef327f8e597569a4c2828be5eaa09a77"},
+    {file = "pywin32-224-cp37-cp37m-win_amd64.whl", hash = "sha256:4eda2e1e50faa706ff8226195b84fbcbd542b08c842a9b15e303589f85bfb41c"},
+]
