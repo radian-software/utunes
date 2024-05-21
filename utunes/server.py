@@ -121,7 +121,6 @@ class Player(abc.ABC):
 
 
 class MPVPlayer(Player):
-
     def __init__(self, callback, log_error):
         super().__init__(callback, log_error)
         self.seek_finished_event = threading.Event()
@@ -183,7 +182,6 @@ class MPVPlayer(Player):
 
 
 class Server:
-
     def __init__(self, playlist=UNSET, index=UNSET, seek=UNSET):
         self.lock = threading.Lock()
         self.error_lock = threading.Lock()
@@ -200,9 +198,10 @@ class Server:
         switching_indices = index is not UNSET and index != self.index
         switching_songs = playlist is not UNSET or index is not UNSET
         switching_to_next = (
-            switching_indices and not switching_playlists and
-            self.index is not UNSET and
-            index == self.index + 1
+            switching_indices
+            and not switching_playlists
+            and self.index is not UNSET
+            and index == self.index + 1
         )
         if switching_playlists:
             self.playlist = playlist
@@ -210,11 +209,10 @@ class Server:
             self.index = index
         if switching_songs:
             if (
-                    switching_to_next and
-                    self.next_song_filename is not UNSET and
-                    self.last_json_mtime is not UNSET and
-                    utunes.Paths.json_basename.stat().st_mtime ==
-                    self.last_json_mtime
+                switching_to_next
+                and self.next_song_filename is not UNSET
+                and self.last_json_mtime is not UNSET
+                and utunes.Paths.json_basename.stat().st_mtime == self.last_json_mtime
             ):
                 filename = self.next_song_filename
             elif self.playlist is not UNSET and self.index is not UNSET:
@@ -246,9 +244,7 @@ class Server:
     def advance_song(self):
         with self.lock:
             if self.playlist is not UNSET and self.index is not UNSET:
-                self.update(
-                    playlist=self.playlist, index=self.index + 1, playing=True
-                )
+                self.update(playlist=self.playlist, index=self.index + 1, playing=True)
 
     def make_error(self, msg):
         with self.error_lock:
