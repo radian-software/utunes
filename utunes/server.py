@@ -134,7 +134,7 @@ class MPVPlayer(Player):
             self.log_error(f"MPV error: {event_data}")
         elif event_data.event_id.value == mpv.MpvEventID.END_FILE:
             self.mpv.pause = True
-            self.callback()
+            threading.Thread(target=self.callback).start()
 
     def handle_seek(self, event):
         self.seek_finished_event.set()
@@ -142,7 +142,7 @@ class MPVPlayer(Player):
     def load(self, filename):
         self.mpv.pause = True
         self.mpv.loadfile(str(filename))
-        self.mpv.wait_for_event("file-loaded")
+        self.mpv.wait_for_event("playback-restart", timeout=5, catch_errors=False)
 
     def unload(self):
         self.mpv.stop()
