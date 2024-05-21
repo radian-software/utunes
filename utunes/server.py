@@ -142,11 +142,7 @@ class MPVPlayer(Player):
     def load(self, filename):
         self.mpv.pause = True
         self.mpv.loadfile(str(filename))
-        # Wait long enough for the operation to complete, probably.
-        # Needless to say, this is a total hack. It seems that
-        # wait_for_property and friends are pretty buggy, though, so I
-        # haven't figured out how to get this working the proper way.
-        time.sleep(0.1)
+        self.mpv.wait_for_event("file-loaded")
 
     def unload(self):
         self.mpv.stop()
