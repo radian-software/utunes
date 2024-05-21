@@ -131,15 +131,11 @@ class MPVPlayer(Player):
         self.mpv.event_callback("seek")(self.handle_seek)
 
     def handle_end_file(self, event_data):
-        reason = event_data["event"]["reason"]
-        error = event_data["event"].get("error")
-        # Unfortunately, python-mpv doesn't translate these enum
-        # values. I grabbed them from the MPV source repository.
-        if reason == 0:  # eof
+        if event_data.error:
+            self.log_error(f"MPV error: {event_data}")
+        elif event_data.event_id.value == mpv.MpvEventID.END_FILE:
             self.mpv.pause = True
             self.callback()
-        elif reason == 4:  # error
-            self.log_error("MPV error: {}".format(error))
 
     def handle_seek(self, event):
         self.seek_finished_event.set()
@@ -154,8 +150,7 @@ class MPVPlayer(Player):
         time.sleep(0.1)
 
     def unload(self):
-        # Unfortunately, python-mpv doesn't define a stop() method.
-        self.mpv.command("stop")
+        self.mpv.stop()
 
     def play(self):
         self.mpv.pause = False
