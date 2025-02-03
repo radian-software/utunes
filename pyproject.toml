@@ -13,9 +13,6 @@ portalocker = "^2.8.2"
 python-mpv = "^1.0.6"
 psutil = "^5.9.8"
 
-
-[tool.poetry.dev-dependencies]
-
 [tool.poetry.scripts]
 utunes = 'utunes:main'
 
