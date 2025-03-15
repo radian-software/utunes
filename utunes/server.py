@@ -137,7 +137,10 @@ class MPVPlayer(Player):
             log(f"MPVPlayer.handle_end_file({event_data})")
         if event_data.error:
             self.log_error(f"MPV error: {event_data}")
-        elif event_data.event_id.value == mpv.MpvEventID.END_FILE:
+        elif (
+            event_data.event_id.value == mpv.MpvEventID.END_FILE
+            and event_data.data.reason == mpv.MpvEventEndFile.EOF
+        ):
             self.mpv.pause = True
             threading.Thread(target=self.callback).start()
 
