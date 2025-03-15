@@ -276,7 +276,7 @@ class Library:
                 )
             )
         for old_filename, new_filename in renames.items():
-            old_filename.rename(new_filename)
+            shutil.move(old_filename, new_filename)
         log("writing library database")
         json_fname = self.get_json_filename()
         with portalocker.Lock(json_fname, "r"):
