@@ -185,6 +185,11 @@ ILLEGAL-CHARS, if given, is a string.
 If CALLBACK is given, invoke it with no arguments once the
 command returns (if it succeeds). Do not change which buffer is
 current."
+  ;; For some reason calling 'utunes read -f foo=bar -- fmt' results
+  ;; in argparse throwing 'The option "-f" does not exist' for no
+  ;; discernable reason, just putting this in as a workaround for now.
+  (when (string-prefix-p format "-")
+    (error "Can't handle format starting with hyphen due to bug"))
   (utunes-command
    :args `("read"
            ,@(mapcan
@@ -205,7 +210,7 @@ current."
                     (car sort))))
               sorts)
            "-i" ,(or illegal-chars "")
-           "--" ,format)
+           ,format)
    :stdout (current-buffer)
    :callback callback))
 
