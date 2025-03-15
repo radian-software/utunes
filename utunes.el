@@ -163,6 +163,14 @@ Return a new alist, without modifying the original."
               "_" "-" (symbol-name key))))
    alist))
 
+(defun utunes--quote-regexp (regexp)
+  "Return a regexp matching exactly REGEXP.
+Unlike `regexp-quote' this escapes the characters that are used
+in Python regexps, not Emacs Lisp regexps."
+  (replace-regexp-in-string
+   "[()]" "\\\\\\&"
+   (regexp-quote regexp)))
+
 (cl-defun utunes-read (format &key filters sorts illegal-chars callback)
   "Invoke 'utunes read'. All keyword arguments are optional.
 Write output into the buffer that is current when this function
@@ -352,7 +360,11 @@ to get the playback state."
               (t
                (utunes-read-to-list
                 '("album" "song" "album_artist")
-                :filters `(("playlist" . ,(format "%s:%d" .playlist .index)))
+                :filters `(("playlist" .
+                            ,(format
+                              "%s:%d"
+                              (utunes--quote-regexp .playlist)
+                              .index)))
                 :callback
                 (lambda (songs)
                   (unless (= (length songs) 1)
@@ -360,7 +372,9 @@ to get the playback state."
                   (let ((data (car songs)))
                     (utunes-read-to-list
                      '("id")
-                     :filters `(("playlist" . ,(format "%s:[^:]+" .playlist)))
+                     :filters `(("playlist" . ,(format "%s:[^:]+"
+                                                       (utunes--quote-regexp
+                                                        .playlist))))
                      :callback
                      (lambda (playlist-songs)
                        (message
