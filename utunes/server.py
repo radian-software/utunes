@@ -7,11 +7,12 @@ import signal
 import sys
 import threading
 import time
+from typing import Literal
 
 import mpv
 
 import utunes
-from utunes import UNSET
+from utunes import UNSET, UnsetClass
 import utunes.nbstreamreader
 
 
@@ -86,7 +87,7 @@ class Player(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def is_playing(self):
+    def is_playing(self) -> bool:
         """
         Check whether the music player is currently playing. Return a
         boolean.
@@ -104,7 +105,7 @@ class Player(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def tell(self):
+    def tell(self) -> float | UnsetClass:
         """
         Return the current seek position, in seconds, or UNSET if no song
         is loaded.
@@ -112,7 +113,7 @@ class Player(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def tell_end(self):
+    def tell_end(self) -> float | UnsetClass:
         """
         Return the maximum possible seek position, in seconds, or UNSET if
         no song is loaded.
@@ -123,6 +124,8 @@ class Player(abc.ABC):
 class MPVPlayer(Player):
     def __init__(self, callback, log_error):
         super().__init__(callback, log_error)
+        if is_debug_enabled():
+            log("MPVPlayer.__init__()")
         self.seek_finished_event = threading.Event()
         self.mpv = mpv.MPV()
         self.mpv.pause = True
@@ -130,6 +133,8 @@ class MPVPlayer(Player):
         self.mpv.event_callback("seek")(self.handle_seek)
 
     def handle_end_file(self, event_data):
+        if is_debug_enabled():
+            log(f"MPVPlayer.handle_end_file({event_data})")
         if event_data.error:
             self.log_error(f"MPV error: {event_data}")
         elif event_data.event_id.value == mpv.MpvEventID.END_FILE:
@@ -137,44 +142,60 @@ class MPVPlayer(Player):
             threading.Thread(target=self.callback).start()
 
     def handle_seek(self, event):
+        if is_debug_enabled():
+            log(f"MPVPlayer.handle_seek({event})")
         self.seek_finished_event.set()
 
     def load(self, filename):
+        if is_debug_enabled():
+            log(f"MPVPlayer.load({filename})")
         self.mpv.pause = True
         self.mpv.loadfile(str(filename))
         self.mpv.wait_for_event("playback-restart", timeout=5, catch_errors=False)
 
     def unload(self):
+        if is_debug_enabled():
+            log("MPVPlayer.unload()")
         self.mpv.stop()
 
     def play(self):
+        if is_debug_enabled():
+            log("MPVPlayer.play()")
         self.mpv.pause = False
 
     def pause(self):
+        if is_debug_enabled():
+            log("MPVPlayer.pause()")
         self.mpv.pause = True
 
     def is_playing(self):
         return not self.mpv.pause
 
     def seek(self, pos):
+        if is_debug_enabled():
+            log(f"MPVPlayer.seek({pos})")
         self.seek_finished_event.clear()
         self.mpv.seek(pos, "absolute")
         self.seek_finished_event.wait()
 
     def tell(self):
         pos = self.mpv.playback_time
+        if is_debug_enabled():
+            log(f"MPVPlayer.tell() -> {pos}")
         if pos is None:
             return UNSET
-        return pos
+        return float(pos)
 
     def tell_end(self):
         # Make sure not to use self.mpv.length. The documentation
         # claims that length and duration are equivalent, but actually
         # length is always 'none'.
         length = self.mpv.duration
+        if is_debug_enabled():
+            log(f"MPVPlayer.tell_end() -> {length}")
         if length is None:
             return UNSET
-        return length
+        return float(length)
 
 
 class Server:
