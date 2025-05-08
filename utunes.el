@@ -123,7 +123,8 @@ succeeds."
                    :buffer stdout
                    :command args
                    :stderr (current-buffer)
-                   :sentinel #'utunes--process-sentinel))
+                   :sentinel #'utunes--process-sentinel
+                   :connection-type 'pipe))
           (file-missing
            (insert "[Command not found]\n")
            (cl-return)))
