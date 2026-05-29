@@ -12,7 +12,6 @@ import subprocess
 import sys
 import time
 
-import atomicwrites
 import portalocker
 import psutil
 
@@ -280,9 +279,11 @@ class Library:
         log("writing library database")
         json_fname = self.get_json_filename()
         with portalocker.Lock(json_fname, "r"):
-            with atomicwrites.atomic_write(json_fname, overwrite=True) as f:
+            json_fname_tmp = pathlib.Path(str(json_fname) + ".tmp")
+            with open(json_fname_tmp, "w") as f:
                 json.dump(self.data, f, indent=2)
                 f.write("\n")
+            json_fname_tmp.rename(json_fname)
 
 
 def extract_fields(format_str):

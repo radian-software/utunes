@@ -7,11 +7,10 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-atomicwrites = "^1.4.1"
 mutagen = "^1.47.0"
-portalocker = "^2.8.2"
-python-mpv = "^1.0.6"
-psutil = "^5.9.8"
+portalocker = "^3.2.0"
+python-mpv = "^1.0.8"
+psutil = "^7.2.2"
 
 [tool.poetry.scripts]
 utunes = 'utunes:main'
